@@ -1,0 +1,32 @@
+﻿<Window x:Class="Jewelpet_Mahou_no_Oheya_Editor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Jewelpet_Mahou_no_Oheya_Editor"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid>
+        <TabControl x:Name="mainTabControl">
+            <TabItem Header="Messages">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="99*"/>
+                        <ColumnDefinition Width="695*"/>
+                    </Grid.ColumnDefinitions>
+                    <ToolBar x:Name="scriptToolBar" HorizontalAlignment="Left" Height="30" VerticalAlignment="Top" Width="1043" Grid.ColumnSpan="2">
+                        <Button x:Name="openMessagesFileButton" Content="Open" HorizontalAlignment="Left" Click="OpenMessagesFileButton_Click" />
+                        <Button x:Name="saveMessagesFileButton" Content="Save" HorizontalAlignment="Left" Click="SaveMessagesFileButton_Click" />
+                        <Button x:Name="extractMessagesFileButton" Content="Extract" HorizontalAlignment="Left" Click="ExtractMessagesFileButton_Click" />
+                    </ToolBar>
+                    <ListBox x:Name="messageListBox" Margin="0,30,272,0" SelectionChanged="MessageListBox_SelectionChanged"  Grid.ColumnSpan="2" />
+                    <ScrollViewer Grid.Column="1" Margin="423,30,0,0">
+                        <DockPanel>
+                            <StackPanel x:Name="editStackPanel" />
+                        </DockPanel> 
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>
