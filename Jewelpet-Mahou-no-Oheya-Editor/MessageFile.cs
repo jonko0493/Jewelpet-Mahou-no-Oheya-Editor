@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PuyoTools;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -18,10 +19,30 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
         public int UnknownMtblInt { get; set; }
         public static int HEADER_LENGTH = 0x30;
 
-        public static MessageFile ParseFromFile(string fileName)
+        public static MessageFile ParseFromCompressedFile(string file)
         {
-            var messageFile = ParseFromData(File.ReadAllBytes(fileName));
-            messageFile.FileName = Path.GetFileName(fileName);
+            byte[] decompressedData;
+            using (FileStream fileStream = File.OpenRead(file))
+            {
+                using (MemoryStream memoryStream = new MemoryStream())
+                {
+                    Lz10Compression.Decompress(fileStream, memoryStream);
+                    decompressedData = new byte[memoryStream.Length];
+                    memoryStream.Position = 0;
+                    while (memoryStream.Position < memoryStream.Length)
+                    {
+                        memoryStream.Read(decompressedData);
+                    }
+                }
+            }
+
+            return ParseFromData(decompressedData);
+        }
+        
+        public static MessageFile ParseFromDecompressedFile(string file)
+        {
+            var messageFile = ParseFromData(File.ReadAllBytes(file));
+            messageFile.FileName = Path.GetFileName(file);
             return messageFile;
         }
 

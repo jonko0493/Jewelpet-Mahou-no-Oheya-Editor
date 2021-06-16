@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jewelpet-Mahou-no-Oheya-Edi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PuyoToolsCompressionPort", "PuyoToolsCompressionPort\PuyoToolsCompressionPort.csproj", "{2CD04619-1194-4394-B284-AB4CEC6D775F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JewelpetEditorTests", "JewelpetEditorTests\JewelpetEditorTests.csproj", "{7A24DE23-C7BC-4367-B5C3-09F6E39E8EB6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{2CD04619-1194-4394-B284-AB4CEC6D775F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2CD04619-1194-4394-B284-AB4CEC6D775F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2CD04619-1194-4394-B284-AB4CEC6D775F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7A24DE23-C7BC-4367-B5C3-09F6E39E8EB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7A24DE23-C7BC-4367-B5C3-09F6E39E8EB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7A24DE23-C7BC-4367-B5C3-09F6E39E8EB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7A24DE23-C7BC-4367-B5C3-09F6E39E8EB6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

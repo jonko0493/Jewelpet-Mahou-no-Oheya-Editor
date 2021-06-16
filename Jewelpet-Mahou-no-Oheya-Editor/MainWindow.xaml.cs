@@ -43,15 +43,15 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             }
         }
 
-        private void OpenMessagesFileButton_Click(object sender, RoutedEventArgs e)
+        private void OpenDecompressedMessagesFileButton_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog
             {
-                Filter = "Decompressed CMP file|*.cmp.decompressed"
+                Filter = "CMP file|*.cmp"
             };
             if (openFileDialog.ShowDialog() == true)
             {
-                _messageFile = MessageFile.ParseFromFile(openFileDialog.FileName);
+                _messageFile = MessageFile.ParseFromCompressedFile(openFileDialog.FileName);
                 messageListBox.ItemsSource = _messageFile.MessageSections;
 
                 Title = $"{BaseWindowTitle} - {_messageFile.FileName}";

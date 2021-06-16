@@ -4,9 +4,9 @@ using System.Text;
 
 namespace PuyoTools
 {
-    public class Lz10Compression : CompressionBase
+    public class Lz10Compression
     {
-        public override void Decompress(Stream source, Stream destination)
+        public static void Decompress(Stream source, Stream destination)
         {
             using (var reader = new BinaryReader(source, Encoding.UTF8, true))
             {
@@ -82,7 +82,7 @@ namespace PuyoTools
         /// </summary>
         /// <param name="source">The stream to read from.</param>
         /// <param name="destination">The stream to write to.</param>
-        public override void Compress(Stream source, Stream destination)
+        public static void Compress(Stream source, Stream destination)
         {
             // Get the source length
             int sourceLength = (int)(source.Length - source.Position);

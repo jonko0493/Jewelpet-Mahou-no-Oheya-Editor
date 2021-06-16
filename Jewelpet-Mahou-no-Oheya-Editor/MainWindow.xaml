@@ -15,7 +15,7 @@
                         <ColumnDefinition Width="695*"/>
                     </Grid.ColumnDefinitions>
                     <ToolBar x:Name="scriptToolBar" HorizontalAlignment="Left" Height="30" VerticalAlignment="Top" Width="1043" Grid.ColumnSpan="2">
-                        <Button x:Name="openMessagesFileButton" Content="Open" HorizontalAlignment="Left" Click="OpenMessagesFileButton_Click" />
+                        <Button x:Name="openMessagesFileButton" Content="Open" HorizontalAlignment="Left" Click="OpenDecompressedMessagesFileButton_Click" />
                         <Button x:Name="saveMessagesFileButton" Content="Save" HorizontalAlignment="Left" Click="SaveMessagesFileButton_Click" />
                         <Button x:Name="extractMessagesFileButton" Content="Extract" HorizontalAlignment="Left" Click="ExtractMessagesFileButton_Click" />
                     </ToolBar>
