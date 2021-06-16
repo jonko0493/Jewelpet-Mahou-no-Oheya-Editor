@@ -52,7 +52,26 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             if (openFileDialog.ShowDialog() == true)
             {
                 _messageFile = MessageFile.ParseFromCompressedFile(openFileDialog.FileName);
-                messageListBox.ItemsSource = _messageFile.MessageSections;
+                messageFileTabControl.Items.Clear();
+                foreach (MessageTable messageTable in _messageFile.MessageTables)
+                {
+                    TabItem messageTableTabItem = new TabItem
+                    {
+                        Header = $"Table 0x{messageTable.Offset}",
+                        Width = messageFileTabControl.Width,
+                    };
+                    ListBox messageTableListBox = new ListBox
+                    {
+                        Margin = new Thickness(0, 0, 0, 0),
+                        Height = messageFileTabControl.Height - 30
+                    };
+
+                    messageTableListBox.ItemsSource = messageTable.MessageSections;
+                    messageTableListBox.SelectionChanged += MessageListBox_SelectionChanged;
+                    messageTableTabItem.Content = messageTableListBox;
+
+                    messageFileTabControl.Items.Add(messageTableTabItem);
+                }
 
                 Title = $"{BaseWindowTitle} - {_messageFile.FileName}";
             }

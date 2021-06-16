@@ -12,12 +12,9 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
     public class MessageFile
     {
         public string FileName { get; set; }
-        public List<MessageSection> MessageSections { get; internal set; } = new List<MessageSection>();
         public int UnknownInt { get; set; }
-        public int[] UnknownHeaderSecondLine { get; set; }
-        public int MtblLength { get; set; }
-        public int UnknownMtblInt { get; set; }
-        public static int HEADER_LENGTH = 0x30;
+        public List<int> MessageTablePointers { get; set; } = new List<int>();
+        public List<MessageTable> MessageTables { get; internal set; } = new List<MessageTable>();
 
         public static MessageFile ParseFromCompressedFile(string file)
         {
@@ -51,31 +48,54 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             var messageFile = new MessageFile
             {
                 UnknownInt = BitConverter.ToInt32(data.Skip(8).Take(4).ToArray()),
-                UnknownHeaderSecondLine = new int[4],
             };
-            for (int i = 0; i < messageFile.UnknownHeaderSecondLine.Length; i++)
+            for (int i = MessageTable.HEADER_LENGTH; BitConverter.ToInt32(data.Skip(i).Take(4).ToArray()) > 0; i += 4)
             {
-                messageFile.UnknownHeaderSecondLine[i] = BitConverter.ToInt32(data.Skip(i * 4 + 0x10).Take(4).ToArray());
+                messageFile.MessageTablePointers.Add(BitConverter.ToInt32(data.Skip(i).Take(4).ToArray()));
             }
-            messageFile.MtblLength = BitConverter.ToInt32(data.Skip(0x28).Take(4).ToArray());
-            messageFile.UnknownMtblInt = BitConverter.ToInt32(data.Skip(0x2C).Take(4).ToArray());
 
-            int firstPointer = BitConverter.ToInt32(data.Skip(HEADER_LENGTH + 0x04).Take(4).ToArray());
-            for (int i = HEADER_LENGTH; i < firstPointer + HEADER_LENGTH; i += MessageSection.LENGTH) // message sections
+            foreach (int mtblPointer in messageFile.MessageTablePointers)
             {
-                var messageSection = new MessageSection();
-                for (int j = 0x04; j < 0x190; j += 0x04) // message section pointers
+                var messageTable = new MessageTable
                 {
-                    int pointer = BitConverter.ToInt32(data.Skip(i + j).Take(4).ToArray());
-                    if (pointer == 0x0000)
+                    Offset = mtblPointer,
+                    Length = BitConverter.ToInt32(data.Skip(mtblPointer + 0x08).Take(4).ToArray()),
+                    UnknownInt = BitConverter.ToInt32(data.Skip(mtblPointer + 0x0C).Take(4).ToArray()),
+                };
+                int tableEntryOffset = mtblPointer + MessageTable.HEADER_LENGTH;
+                int firstPointer = tableEntryOffset + messageTable.Length;
+                for (int i = mtblPointer + 0x10; i < firstPointer + tableEntryOffset; i += MessageSection.NORMAL_LENGTH) // message sections
+                {
+                    
+                    var messageSection = new MessageSection();
+                    for (int j = 0x00; j < 0x190 && i + j < firstPointer + tableEntryOffset; j += 0x04) // message section pointers
                     {
-                        break;
+                        int pointer = BitConverter.ToInt32(data.Skip(i + j).Take(4).ToArray());
+                        if (pointer == 0x0000 && j == 0x00)
+                        {
+                            messageSection.StartsWithZero = true;
+                            continue;
+                        }
+                        else if (pointer == 0x0000)
+                        {
+                            break;
+                        }
+                        else if (i == mtblPointer + 0x10 && (j == 0x00 || (j == 0x04 && firstPointer == tableEntryOffset + messageTable.Length)))
+                        {
+                            firstPointer = pointer;
+                        }
+                        messageSection.Pointers.Add(pointer);
+                        messageSection.Messages.Add(new Message(data.TakeLast(data.Length - (pointer + tableEntryOffset)).ToArray()));
                     }
-                    messageSection.Pointers.Add(pointer);
-                    messageSection.Messages.Add(new Message(data.TakeLast(data.Length - (pointer + HEADER_LENGTH)).ToArray()));
-                }
 
-                messageFile.MessageSections.Add(messageSection);
+                    if (MessageSection.NORMAL_LENGTH + i > firstPointer + tableEntryOffset)
+                    {
+                        messageSection.Length = firstPointer - i + tableEntryOffset;
+                    }
+
+                    messageTable.MessageSections.Add(messageSection);
+                }
+                messageFile.MessageTables.Add(messageTable);
             }
 
             return messageFile;
@@ -94,18 +114,54 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             bytes.AddRange(Encoding.ASCII.GetBytes("TBB1"));
             bytes.AddRange(BitConverter.GetBytes(0x00000010));
             bytes.AddRange(BitConverter.GetBytes(UnknownInt));
-            bytes.AddRange(BitConverter.GetBytes(0xFFFFFFFF)); // Length placeholder, will be replaced later
-            foreach (int unknown in UnknownHeaderSecondLine)
+            // Length will be inserted later
+            foreach (int mtblPointer in MessageTablePointers)
             {
-                bytes.AddRange(BitConverter.GetBytes(unknown));
+                bytes.AddRange(BitConverter.GetBytes(mtblPointer));
+            }
+            for (int i = (bytes.Count + 4) % 16; i < 16; i++)
+            {
+                bytes.Add(0x00);
             }
             // Message Table Header
-            bytes.AddRange(Encoding.ASCII.GetBytes("MTBL"));
-            bytes.AddRange(BitConverter.GetBytes(0x00000010));
-            bytes.AddRange(BitConverter.GetBytes(MtblLength)); // Will be replaced later
-            bytes.AddRange(BitConverter.GetBytes(UnknownMtblInt));
 
-            
+            foreach (MessageTable table in MessageTables)
+            {
+                bytes.AddRange(Encoding.ASCII.GetBytes("MTBL"));
+                bytes.AddRange(BitConverter.GetBytes(0x00000010));
+                // MTBL length will be inserted later
+                bytes.AddRange(BitConverter.GetBytes(table.UnknownInt));
+
+                // Pointers
+                foreach (MessageSection section in table.MessageSections)
+                {
+                    if (section.StartsWithZero)
+                    {
+                        bytes.AddRange(BitConverter.GetBytes(0x00000000));
+                    }
+                    foreach (int pointer in section.Pointers)
+                    {
+                        bytes.AddRange(BitConverter.GetBytes(pointer));
+                    }
+                    for (int i = section.Pointers.Count * 4 + (section.StartsWithZero ? 4 : 0); i < section.Length; i += 4)
+                    {
+                        bytes.AddRange(BitConverter.GetBytes(0x00000000));
+                    }
+                }
+
+                // Messages
+                foreach (MessageSection section in table.MessageSections)
+                {
+                    foreach (Message message in section.Messages)
+                    {
+                        bytes.AddRange(message.GetBytes());
+                    }
+                }
+
+                bytes.InsertRange(table.Offset + 4, BitConverter.GetBytes(table.Length)); // minus 0x30 + mtbl length value length
+            }
+
+            bytes.InsertRange(0x0C, BitConverter.GetBytes(bytes.Count + 4)); // plus its own length
 
             return bytes.ToArray();
         }
@@ -442,9 +498,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             { 0x8004, "[unknown8004]" },
             { 0x8064, "[player_name]" },
             { 0x8065, "[unknown8065]" },
-            { 0x8066, "[ルビ]" },
             { 0x8068, "[24]" },
-            { 0x8069, "[ラブラ]" },
             { 0x9000, "[unknown9000]" },
             { 0xA000, "[unknownA000]" },
             { 0xB000, "[unknownB000]" },
@@ -452,6 +506,44 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             { 0xD000, "[unknownD000]" },
             { 0xE000, "[unknownE000]" },
             { 0xF000, "[unknownF000]" },
+        };
+
+        public static Dictionary<ushort, string> X8066ShortToCharMap = new Dictionary<ushort, string>
+        {
+            { 0x0000, "[ルビー]" },
+            { 0x0001, "[サフィー]" },
+            { 0x0002, "[ガーネット]" },
+            { 0x0003, "[ダイアナ]" },
+            { 0x0004, "[ダイアナ]" },
+            { 0x0005, "[プレーズ]" },
+            { 0x0006, "[リン]" },
+            { 0x0007, "[カイト]" },
+            { 0x0008, "[カイヤ]" },
+            { 0x0009, "[ミルキィ]" },
+            { 0x000A, "[ラルド]" },
+            { 0x000B, "[ルナ]" },
+            { 0x000C, "[フローラ]" },
+            { 0x000D, "[チターナ]" },
+            { 0x000E, "[トール]" },
+            { 0x000F, "[コハク]" },
+            { 0x0010, "[ディアン]" },
+            { 0x0011, "[ブラウニー]" },
+            { 0x0012, "[ペリドット]" },
+            { 0x0013, "[クリス]" },
+            { 0x0014, "[リル]" },
+            { 0x0015, "[ユーク]" },
+            { 0x0016, "[アメリ]" },
+            { 0x0017, "[イオ]" },
+            { 0x0018, "[サンゴ]" },
+            { 0x0019, "[タータ]" },
+            { 0x001A, "[ネフライト]" },
+            { 0x001B, "[ラピス]" },
+            { 0x001C, "[ニック]" },
+            { 0x001D, "[トパーズ]" },
+            { 0x001E, "[アレク]" },
+            { 0x001F, "[アクア]" },
+            { 0x0020, "[オパール]" },
+            { 0x0021, "[ラブラ]" },
         };
 
         public static Dictionary<ushort, string> X8067ShortToCharMap = new Dictionary<ushort, string>
@@ -462,11 +554,23 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
         };
     }
 
+    public class MessageTable
+    {
+        public static int HEADER_LENGTH = 0x10;
+
+        public int Offset { get; set; }
+        public int Length { get; set; }
+        public int UnknownInt { get; set; }
+        public List<MessageSection> MessageSections { get; set; } = new List<MessageSection>();
+    }
+
     public class MessageSection
     {
-        public static int LENGTH = 0x190;
+        public static int NORMAL_LENGTH = 0x190;
         public List<Message> Messages { get; set; } = new List<Message>();
         public List<int> Pointers { get; set; } = new List<int>();
+        public int Length { get; set; } = NORMAL_LENGTH;
+        public bool StartsWithZero { get; set; } = false;
 
         public override string ToString()
         {
@@ -505,6 +609,19 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                         throw new ArgumentException($"Unknown 8067 operator 0x{next8067Operator:X4}");
                     }
                 }
+                else if (nextShort == 0x8066)
+                {
+                    ushort next8066Operator = BitConverter.ToUInt16(data.Skip(i + 2).Take(2).ToArray());
+                    if (MessageFile.X8066ShortToCharMap.ContainsKey(next8066Operator))
+                    {
+                        Text += MessageFile.X8066ShortToCharMap[next8066Operator];
+                        i += 2;
+                    }
+                    else
+                    {
+                        throw new ArgumentException($"Unknown 8066 operator 0x{next8066Operator:X4}");
+                    }
+                }
                 else if (nextShort == 0x0000)
                 {
                     break;
@@ -530,26 +647,37 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                 if (Text[i] == '[')
                 {
                     string op = string.Concat(Text.Substring(i).TakeWhile(c => c != ']'));
-                    if (MessageFile.ShortToCharMap.ContainsValue($"[{op}"))
+                    if (MessageFile.ShortToCharMap.ContainsValue($"{op}]"))
                     {
-                        bytes.AddRange(BitConverter.GetBytes(MessageFile.ShortToCharMap.First(c => c.Value == $"[{op}").Key));
+                        bytes.AddRange(BitConverter.GetBytes(MessageFile.ShortToCharMap.First(c => c.Value == $"{op}]").Key));
                         i += op.Length;
                     }
-                    else if (MessageFile.X8067ShortToCharMap.ContainsValue($"[{op}"))
+                    else if (MessageFile.X8067ShortToCharMap.ContainsValue($"{op}]"))
                     {
                         bytes.AddRange(BitConverter.GetBytes((ushort)0x8067));
-                        bytes.AddRange(BitConverter.GetBytes(MessageFile.X8067ShortToCharMap.First(c => c.Value == $"[{op}").Key));
+                        bytes.AddRange(BitConverter.GetBytes(MessageFile.X8067ShortToCharMap.First(c => c.Value == $"{op}]").Key));
+                        i += op.Length;
+                    }
+                    else if (MessageFile.X8066ShortToCharMap.ContainsValue($"{op}]"))
+                    {
+                        bytes.AddRange(BitConverter.GetBytes((ushort)0x8066));
+                        bytes.AddRange(BitConverter.GetBytes(MessageFile.X8066ShortToCharMap.First(c => c.Value == $"{op}]").Key));
                         i += op.Length;
                     }
                     else
                     {
-                        throw new ArgumentException($"Unrecognized op '[{op}'");
+                        throw new ArgumentException($"Unrecognized op '{op}'");
                     }
                 }
                 else
                 {
                     bytes.AddRange(BitConverter.GetBytes(MessageFile.ShortToCharMap.First(c => c.Value == Text[i].ToString()).Key));
                 }
+            }
+
+            for (int i = bytes.Count % 16; i < 16; i++)
+            {
+                bytes.Add(0x00);
             }
 
             return bytes.ToArray();
