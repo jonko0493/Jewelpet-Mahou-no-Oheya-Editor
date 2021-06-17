@@ -101,14 +101,26 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             return messageFile;
         }
 
-        public void SaveToFile(string file)
+        public void SaveToDecompressedFile(string file)
         {
             File.WriteAllBytes(file, GetBytes());
+        }
+
+        public void SaveToCompressedFile(string file)
+        {
+            using (MemoryStream memoryStream = new MemoryStream(GetBytes()))
+            {
+                using (FileStream fileStream = File.OpenWrite(file))
+                {
+                    Lz10Compression.Compress(memoryStream, fileStream);
+                }
+            }
         }
 
         public byte[] GetBytes()
         {
             List<byte> bytes = new List<byte>();
+            RecalculatePointers();
 
             // File Header
             bytes.AddRange(Encoding.ASCII.GetBytes("TBB1"));
@@ -127,43 +139,25 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
 
             foreach (MessageTable table in MessageTables)
             {
-                bytes.AddRange(Encoding.ASCII.GetBytes("MTBL"));
-                bytes.AddRange(BitConverter.GetBytes(0x00000010));
-                // MTBL length will be inserted later
-                bytes.AddRange(BitConverter.GetBytes(table.UnknownInt));
-
-                // Pointers
-                foreach (MessageSection section in table.MessageSections)
-                {
-                    if (section.StartsWithZero)
-                    {
-                        bytes.AddRange(BitConverter.GetBytes(0x00000000));
-                    }
-                    foreach (int pointer in section.Pointers)
-                    {
-                        bytes.AddRange(BitConverter.GetBytes(pointer));
-                    }
-                    for (int i = section.Pointers.Count * 4 + (section.StartsWithZero ? 4 : 0); i < section.Length; i += 4)
-                    {
-                        bytes.AddRange(BitConverter.GetBytes(0x00000000));
-                    }
-                }
-
-                // Messages
-                foreach (MessageSection section in table.MessageSections)
-                {
-                    foreach (Message message in section.Messages)
-                    {
-                        bytes.AddRange(message.GetBytes());
-                    }
-                }
-
-                bytes.InsertRange(table.Offset + 4, BitConverter.GetBytes(table.Length)); // minus 0x30 + mtbl length value length
+                bytes.AddRange(table.GetBytes());
             }
 
             bytes.InsertRange(0x0C, BitConverter.GetBytes(bytes.Count + 4)); // plus its own length
 
             return bytes.ToArray();
+        }
+
+        public void RecalculatePointers()
+        {
+            List<int> pointers = new();
+
+            pointers.Add(MessageTables.Count * 4 + 0x10 + (16 - (MessageTables.Count * 4) % 16));
+            for (int i = 0; i < MessageTables.Count - 1; i++)
+            {
+                pointers.Add(pointers[i] + MessageTables[i].GetBytes().Length);
+            }
+
+            MessageTablePointers = pointers;
         }
 
         public static Dictionary<ushort, string> ShortToCharMap = new Dictionary<ushort, string>
@@ -556,17 +550,76 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
 
     public class MessageTable
     {
-        public static int HEADER_LENGTH = 0x10;
+        public const int HEADER_LENGTH = 0x10;
 
         public int Offset { get; set; }
         public int Length { get; set; }
         public int UnknownInt { get; set; }
         public List<MessageSection> MessageSections { get; set; } = new List<MessageSection>();
+
+        public byte[] GetBytes()
+        {
+            List<byte> bytes = new();
+
+            RecalculatePointers();
+
+            bytes.AddRange(Encoding.ASCII.GetBytes("MTBL"));
+            bytes.AddRange(BitConverter.GetBytes(0x00000010));
+            // MTBL length will be inserted later
+            bytes.AddRange(BitConverter.GetBytes(UnknownInt));
+
+            // Pointers
+            foreach (MessageSection section in MessageSections)
+            {
+                if (section.StartsWithZero)
+                {
+                    bytes.AddRange(BitConverter.GetBytes(0x00000000));
+                }
+                foreach (int pointer in section.Pointers)
+                {
+                    bytes.AddRange(BitConverter.GetBytes(pointer));
+                }
+                for (int i = section.Pointers.Count * 4 + (section.StartsWithZero ? 4 : 0); i < section.Length; i += 4)
+                {
+                    bytes.AddRange(BitConverter.GetBytes(0x00000000));
+                }
+            }
+
+            // Messages
+            foreach (MessageSection section in MessageSections)
+            {
+                foreach (Message message in section.Messages)
+                {
+                    bytes.AddRange(message.GetBytes());
+                }
+            }
+
+            bytes.InsertRange(8, BitConverter.GetBytes(bytes.Count - 0x0C)); // minus header length & the missing length value
+
+            return bytes.ToArray();
+        }
+
+        public void RecalculatePointers()
+        {
+            int currentPointer = MessageSections.Sum(s => s.Length);
+            foreach (MessageSection section in MessageSections)
+            {
+                List<int> pointers = new();
+                
+                foreach (Message message in section.Messages)
+                {
+                    pointers.Add(currentPointer);
+                    currentPointer += message.GetBytes().Length;
+                }
+
+                section.Pointers = pointers;
+            }
+        }
     }
 
     public class MessageSection
     {
-        public static int NORMAL_LENGTH = 0x190;
+        public const int NORMAL_LENGTH = 0x190;
         public List<Message> Messages { get; set; } = new List<Message>();
         public List<int> Pointers { get; set; } = new List<int>();
         public int Length { get; set; } = NORMAL_LENGTH;
@@ -633,7 +686,6 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                 else
                 {
                     throw new ArgumentException($"Unknown opcode 0x{nextShort:X4} encountered");
-                    //Text += $"[unknown{nextShort:X4}]";
                 }
             }
         }

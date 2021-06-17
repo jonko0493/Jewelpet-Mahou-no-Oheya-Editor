@@ -20,9 +20,6 @@
                         <Button x:Name="extractMessagesFileButton" Content="Extract" HorizontalAlignment="Left" Click="ExtractMessagesFileButton_Click" />
                     </ToolBar>
                     <TabControl x:Name="messageFileTabControl" Margin="0,35,277,0" Grid.ColumnSpan="2">
-                        <TabItem Header="Table 1">
-                            <ListBox x:Name="messageListBox" Margin="0,0,5,0" SelectionChanged="MessageListBox_SelectionChanged"  Grid.ColumnSpan="2" Height="340" />
-                        </TabItem>
                     </TabControl>
                     <ScrollViewer Grid.Column="1" Margin="423,30,0,0">
                         <DockPanel>

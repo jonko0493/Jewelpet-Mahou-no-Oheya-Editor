@@ -38,7 +38,9 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                 MessageSection messageSection = (MessageSection)e.AddedItems[0];
                 foreach (Message message in messageSection.Messages)
                 {
-                    editStackPanel.Children.Add(new TextBox { Text = message.Text, Height = 40 });
+                    var messageTextBox = new MessageTextBox { Text = message.Text, Height = 60, Message = message, MessageListBox = (ListBox)sender, AcceptsReturn = true };
+                    messageTextBox.TextChanged += MessageTextBox_TextChanged;
+                    editStackPanel.Children.Add(messageTextBox);
                 }
             }
         }
@@ -51,19 +53,20 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             };
             if (openFileDialog.ShowDialog() == true)
             {
+                editStackPanel.Children.Clear();
                 _messageFile = MessageFile.ParseFromCompressedFile(openFileDialog.FileName);
                 messageFileTabControl.Items.Clear();
                 foreach (MessageTable messageTable in _messageFile.MessageTables)
                 {
                     TabItem messageTableTabItem = new TabItem
                     {
-                        Header = $"Table 0x{messageTable.Offset}",
+                        Header = $"Table 0x{messageTable.Offset:X4}",
                         Width = messageFileTabControl.Width,
                     };
                     ListBox messageTableListBox = new ListBox
                     {
                         Margin = new Thickness(0, 0, 0, 0),
-                        Height = messageFileTabControl.Height - 30
+                        Height = messageFileTabControl.Height - 30,
                     };
 
                     messageTableListBox.ItemsSource = messageTable.MessageSections;
@@ -79,12 +82,26 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
 
         private void SaveMessagesFileButton_Click(object sender, RoutedEventArgs e)
         {
-
+            SaveFileDialog saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CMP file|*.cmp"
+            };
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                _messageFile.SaveToCompressedFile(saveFileDialog.FileName);
+            }
         }
 
         private void ExtractMessagesFileButton_Click(object sender, RoutedEventArgs e)
         {
 
+        }
+
+        private void MessageTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            var messageTextBox = (MessageTextBox)sender;
+            messageTextBox.Message.Text = messageTextBox.Text.Replace("\r", "");
+            messageTextBox.MessageListBox.Items.Refresh();
         }
     }
 }
