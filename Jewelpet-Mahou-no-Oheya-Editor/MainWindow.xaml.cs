@@ -53,30 +53,37 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             };
             if (openFileDialog.ShowDialog() == true)
             {
-                editStackPanel.Children.Clear();
-                _messageFile = MessageFile.ParseFromCompressedFile(openFileDialog.FileName);
-                messageFileTabControl.Items.Clear();
-                foreach (MessageTable messageTable in _messageFile.MessageTables)
+                try
                 {
-                    TabItem messageTableTabItem = new TabItem
+                    editStackPanel.Children.Clear();
+                    _messageFile = MessageFile.ParseFromCompressedFile(openFileDialog.FileName);
+                    messageFileTabControl.Items.Clear();
+                    foreach (MessageTable messageTable in _messageFile.MessageTables)
                     {
-                        Header = $"Table 0x{messageTable.Offset:X4}",
-                        Width = messageFileTabControl.Width,
-                    };
-                    ListBox messageTableListBox = new ListBox
-                    {
-                        Margin = new Thickness(0, 0, 0, 0),
-                        Height = messageFileTabControl.Height - 30,
-                    };
+                        TabItem messageTableTabItem = new TabItem
+                        {
+                            Header = $"Table 0x{messageTable.Offset:X4}",
+                            Width = messageFileTabControl.Width,
+                        };
+                        ListBox messageTableListBox = new ListBox
+                        {
+                            Margin = new Thickness(0, 0, 0, 0),
+                            Height = messageFileTabControl.Height - 30,
+                        };
 
-                    messageTableListBox.ItemsSource = messageTable.MessageSections;
-                    messageTableListBox.SelectionChanged += MessageListBox_SelectionChanged;
-                    messageTableTabItem.Content = messageTableListBox;
+                        messageTableListBox.ItemsSource = messageTable.MessageSections;
+                        messageTableListBox.SelectionChanged += MessageListBox_SelectionChanged;
+                        messageTableTabItem.Content = messageTableListBox;
 
-                    messageFileTabControl.Items.Add(messageTableTabItem);
+                        messageFileTabControl.Items.Add(messageTableTabItem);
+                    }
+
+                    Title = $"{BaseWindowTitle} - {_messageFile.FileName}";
                 }
-
-                Title = $"{BaseWindowTitle} - {_messageFile.FileName}";
+                catch (Exception exc)
+                {
+                    MessageBox.Show($"Failed to load message file - {exc.Message}");
+                }
             }
         }
 
@@ -102,6 +109,31 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             var messageTextBox = (MessageTextBox)sender;
             messageTextBox.Message.Text = messageTextBox.Text.Replace("\r", "");
             messageTextBox.MessageListBox.Items.Refresh();
+        }
+
+        private void LoadGfntFileButton_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog()
+            {
+                Filter = "GFNT files|*.cmp;*.gfnt|Compressed GFNT file|*.cmp|Decompressed GFNT file|*.gfnt"
+            };
+            if (openFileDialog.ShowDialog() == true)
+            {
+                GfntFile gfntFile;
+                if (openFileDialog.FileName.EndsWith(".cmp"))
+                {
+                    gfntFile = GfntFile.ParseFromCompressedFile(openFileDialog.FileName);
+                }
+                else
+                {
+                    gfntFile = GfntFile.ParseFromDecompressedFile(openFileDialog.FileName);
+                }
+
+                graphicsStackPanel.Children.Clear();
+
+                var image = gfntFile.GetImage();
+                graphicsStackPanel.Children.Add(new Image { Source = Helpers.GetBitmapImageFromBitmap(image), MaxWidth = image.Width * 2, MaxHeight = image.Height * 2 });
+            }
         }
     }
 }

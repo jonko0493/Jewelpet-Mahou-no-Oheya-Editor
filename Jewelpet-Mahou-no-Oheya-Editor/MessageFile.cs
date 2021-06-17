@@ -18,22 +18,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
 
         public static MessageFile ParseFromCompressedFile(string file)
         {
-            byte[] decompressedData;
-            using (FileStream fileStream = File.OpenRead(file))
-            {
-                using (MemoryStream memoryStream = new MemoryStream())
-                {
-                    Lz10Compression.Decompress(fileStream, memoryStream);
-                    decompressedData = new byte[memoryStream.Length];
-                    memoryStream.Position = 0;
-                    while (memoryStream.Position < memoryStream.Length)
-                    {
-                        memoryStream.Read(decompressedData);
-                    }
-                }
-            }
-
-            return ParseFromData(decompressedData);
+            return ParseFromData(Helpers.DecompressFile(file));
         }
         
         public static MessageFile ParseFromDecompressedFile(string file)
