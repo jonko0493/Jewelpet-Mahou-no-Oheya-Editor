@@ -19,6 +19,7 @@
                         <Button x:Name="openMessagesFileButton" Content="Open" HorizontalAlignment="Left" Click="OpenMessagesFileButton_Click" />
                         <Button x:Name="saveMessagesFileButton" Content="Save" HorizontalAlignment="Left" Click="SaveMessagesFileButton_Click" />
                         <Button x:Name="extractMessagesFileButton" Content="Extract" HorizontalAlignment="Left" Click="ExtractMessagesFileButton_Click" />
+                        <Button x:Name="extractMessagesDirectoryFileButton" Content="Extract Directory" HorizontalAlignment="Left" Click="ExtractMessagesDirectoryFileButton_Click" />
                     </ToolBar>
                     <TabControl x:Name="messageFileTabControl" Margin="0,35,277,0" Grid.ColumnSpan="2" />
                     <ScrollViewer Grid.Column="1" Margin="423,30,0,0">

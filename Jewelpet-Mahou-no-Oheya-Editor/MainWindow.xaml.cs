@@ -1,6 +1,8 @@
-﻿using Microsoft.Win32;
+﻿using FolderBrowserEx;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,6 +15,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Path = System.IO.Path;
 
 namespace Jewelpet_Mahou_no_Oheya_Editor
 {
@@ -46,7 +49,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             }
         }
 
-        private async Task OpenMessagesFileButton_Click(object sender, RoutedEventArgs e)
+        private void OpenMessagesFileButton_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog
             {
@@ -57,7 +60,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                 try
                 {
                     editStackPanel.Children.Clear();
-                    _messageFile = await MessageFile.ParseFromCompressedFile(openFileDialog.FileName);
+                    _messageFile = MessageFile.ParseFromCompressedFile(openFileDialog.FileName).GetAwaiter().GetResult();
                     messageFileTabControl.Items.Clear();
                     foreach (MessageTable messageTable in _messageFile.MessageTables)
                     {
@@ -103,7 +106,34 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
 
         private void ExtractMessagesFileButton_Click(object sender, RoutedEventArgs e)
         {
+            SaveFileDialog saveFileDialog = new SaveFileDialog
+            {
+                Filter = "Text file|*.txt"
+            };
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                _messageFile.SaveToCompressedFile(saveFileDialog.FileName);
+            }
+        }
 
+        private void ExtractMessagesDirectoryFileButton_Click(object sender, RoutedEventArgs e)
+        {
+            ExtractMessagesDirectoryFileButtonAsync().GetAwaiter().GetResult();
+        }
+
+        private async Task ExtractMessagesDirectoryFileButtonAsync()
+        {
+            FolderBrowserDialog openFolderBrowserDialog = new FolderBrowserDialog
+            {
+                Title = "Select folder to extract files from",
+            };
+            if (openFolderBrowserDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                var files = Directory.GetFiles(openFolderBrowserDialog.SelectedFolder, "*.cmp", SearchOption.AllDirectories);
+                await Task.WhenAll(files.Select(f => MessageFile.ExtractStringsFromFileToFile(f,
+                    Path.Combine(Path.GetDirectoryName(f), $"{Path.GetFileNameWithoutExtension(f)}.txt"))));
+                MessageBox.Show("Extraction complete!");
+            }
         }
 
         private void MessageTextBox_TextChanged(object sender, TextChangedEventArgs e)

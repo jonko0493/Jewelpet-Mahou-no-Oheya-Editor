@@ -102,6 +102,45 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             }
         }
 
+        public string ExtractStringsFromMessages()
+        {
+            string extractedStrings = $"File: {FileName}\n----------------------\n\n\n";
+
+            foreach (MessageTable table in MessageTables)
+            {
+                extractedStrings += $"\nTable @ {table.Offset}\n========\n\n\n";
+                foreach (MessageSection section in table.MessageSections)
+                {
+                    extractedStrings += $"\n === New Message Section ===\n\n\n";
+                    foreach (Message message in section.Messages)
+                    {
+                        extractedStrings += $"{message.Text}\n\n";
+                    }
+                }
+            }
+
+            return extractedStrings;
+        }
+
+        public async Task SaveExtractedStringsToFile(string file)
+        {
+            string extractedStrings = ExtractStringsFromMessages();
+            await File.WriteAllTextAsync(file, extractedStrings);
+        }
+
+        public static async Task ExtractStringsFromFileToFile(string openFile, string saveFile)
+        {
+            try
+            {
+                MessageFile messageFile = await ParseFromCompressedFile(openFile);
+                await messageFile.SaveExtractedStringsToFile(saveFile);
+            }
+            catch (StackOverflowException)
+            {
+                // fail silently, this file was invalid anyway
+            }
+        }
+
         public byte[] GetBytes()
         {
             List<byte> bytes = new List<byte>();
