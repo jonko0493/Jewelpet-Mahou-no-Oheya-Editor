@@ -61,16 +61,15 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                             messageSection.StartsWithZero = true;
                             continue;
                         }
-                        else if (pointer == 0x0000)
-                        {
-                            break;
-                        }
                         else if (i == mtblPointer + 0x10 && (j == 0x00 || (j == 0x04 && firstPointer == tableEntryOffset + messageTable.Length)))
                         {
                             firstPointer = pointer;
                         }
                         messageSection.Pointers.Add(pointer);
-                        messageSection.Messages.Add(new Message(data.TakeLast(data.Length - (pointer + tableEntryOffset)).ToArray()));
+                        if (pointer != 0x0000)
+                        {
+                            messageSection.Messages.Add(new Message(data.TakeLast(data.Length - (pointer + tableEntryOffset)).ToArray()));
+                        }
                     }
 
                     if (MessageSection.NORMAL_LENGTH + i > firstPointer + tableEntryOffset)
@@ -184,6 +183,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             MessageTablePointers = pointers;
         }
 
+        #region CharMaps
         public static Dictionary<ushort, string> ShortToCharMap = new Dictionary<ushort, string>
         {
             { 0x0000, "[end]" },
@@ -570,6 +570,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             { 0x000D, "[なにもつけない02]" },
             { 0x00EF, "アクセ３９" },
         };
+        #endregion
     }
 
     public class MessageTable

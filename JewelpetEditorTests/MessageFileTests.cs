@@ -8,6 +8,7 @@ namespace JewelpetEditorTests
     {
         private const string SYS_MESS_DECOMPRESSED = ".\\inputs\\SysMess.cmp.decompressed";
         private const string COMM_TALK_DECOMPRESSED = ".\\inputs\\CommTalk.cmp.decompressed";
+        private const string EVENT_500_599_DECOMPRESSED = ".\\inputs\\Event_500_599.cmp.decompressed";
         private const string RESPONSE_DECOMPRESSED = ".\\inputs\\Response.cmp.decompressed";
         private const string GARDEN_MESS_DECOMPRESSED = ".\\inputs\\GardenMess.cmp.decompressed";
         private const string ITEM_MESS_DECOMPRESSED = ".\\inputs\\ItemMes.cmp.decompressed";
@@ -15,6 +16,7 @@ namespace JewelpetEditorTests
         [Test]
         [TestCase(SYS_MESS_DECOMPRESSED)]
         [TestCase(COMM_TALK_DECOMPRESSED)]
+        [TestCase(EVENT_500_599_DECOMPRESSED)]
         [TestCase(RESPONSE_DECOMPRESSED)]
         [TestCase(GARDEN_MESS_DECOMPRESSED)]
         [TestCase(ITEM_MESS_DECOMPRESSED)]
