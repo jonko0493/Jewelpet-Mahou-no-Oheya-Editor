@@ -44,6 +44,22 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
 
             return decompressedData;
         }
+
+        public static async Task<byte[]> DecompressFileAsync(string file)
+        {
+            byte[] decompressedData;
+            using FileStream fileStream = File.OpenRead(file);
+            using MemoryStream memoryStream = new MemoryStream();
+            Lz10Compression.Decompress(fileStream, memoryStream);
+            decompressedData = new byte[memoryStream.Length];
+            memoryStream.Position = 0;
+            while (memoryStream.Position < memoryStream.Length)
+            {
+                await memoryStream.ReadAsync(decompressedData);
+            }
+
+            return decompressedData;
+        }
     }
 
     public class MessageTextBox : TextBox

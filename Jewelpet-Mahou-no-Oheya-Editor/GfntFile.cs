@@ -33,13 +33,14 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
         public byte[] PixelData { get; set; }
         public byte[] PaletteData { get; set; }
 
-        List<Color> Palette { get; set; } = new();
+        public List<Color> Palette { get; set; } = new();
 
         public enum TileForm
         {
+            A3 = 0x01,
             GBA_4BPP = 0x03,
             GBA_8BPP = 0x04,
-            RGBA_8BPP = 0x06,
+            A5 = 0x06,
         }
 
         public static GfntFile ParseFromData(byte[] data)
@@ -56,15 +57,32 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             gfntFile.PixelData = data.Skip(0x1C).Take(data.Length - 0x1C - gfntFile.PaletteLength).ToArray(); // minus header, minus palette
             gfntFile.PaletteData = data.TakeLast(gfntFile.PaletteLength).ToArray();
 
-            for (int i = 0; i < gfntFile.PaletteData.Length; i += 2)
+            if (gfntFile.ImageTileForm == TileForm.A3 || gfntFile.ImageTileForm == TileForm.A5)
             {
-                short color = BitConverter.ToInt16(gfntFile.PaletteData.Skip(i).Take(2).ToArray());
-                gfntFile.Palette.Add(Color.FromArgb((color & 0x1F) << 3, ((color >> 5) & 0x1F) << 3, ((color >> 10) & 0x1F) << 3));
-            }
+                int alphaStep = gfntFile.PaletteLength / 2;
+                int alphaStart = 255;
 
-            while (gfntFile.Palette.Count < 256)
+                for (int alpha = alphaStart; alpha >= 0 && gfntFile.Palette.Count < 256; alpha -= alphaStep)
+                {
+                    for (int i = gfntFile.PaletteData.Length - 2; i >= 0 ; i -= 2)
+                    {
+                        short color = BitConverter.ToInt16(gfntFile.PaletteData.Skip(i).Take(2).ToArray());
+                        gfntFile.Palette.Insert(0, Color.FromArgb(alpha, (color & 0x1F) << 3, ((color >> 5) & 0x1F) << 3, ((color >> 10) & 0x1F) << 3));
+                    }
+                }
+            }
+            else
             {
-                gfntFile.Palette.Add(Color.FromArgb(0, 0, 0));
+                for (int i = 0; i < gfntFile.PaletteData.Length; i += 2)
+                {
+                    short color = BitConverter.ToInt16(gfntFile.PaletteData.Skip(i).Take(2).ToArray());
+                    gfntFile.Palette.Add(Color.FromArgb((color & 0x1F) << 3, ((color >> 5) & 0x1F) << 3, ((color >> 10) & 0x1F) << 3));
+                }
+
+                while (gfntFile.Palette.Count < 256)
+                {
+                    gfntFile.Palette.Add(Color.Black);
+                }
             }
 
             return gfntFile;

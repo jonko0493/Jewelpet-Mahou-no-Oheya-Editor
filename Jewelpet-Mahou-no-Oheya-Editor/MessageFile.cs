@@ -16,14 +16,14 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
         public List<int> MessageTablePointers { get; set; } = new List<int>();
         public List<MessageTable> MessageTables { get; internal set; } = new List<MessageTable>();
 
-        public static MessageFile ParseFromCompressedFile(string file)
+        public static async Task<MessageFile> ParseFromCompressedFile(string file)
         {
-            return ParseFromData(Helpers.DecompressFile(file));
+            return ParseFromData(await Helpers.DecompressFileAsync(file));
         }
         
-        public static MessageFile ParseFromDecompressedFile(string file)
+        public static async Task<MessageFile> ParseFromDecompressedFile(string file)
         {
-            var messageFile = ParseFromData(File.ReadAllBytes(file));
+            var messageFile = ParseFromData(await File.ReadAllBytesAsync(file));
             messageFile.FileName = Path.GetFileName(file);
             return messageFile;
         }
