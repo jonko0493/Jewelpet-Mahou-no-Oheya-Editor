@@ -629,15 +629,17 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             int currentPointer = MessageSections.Sum(s => s.Length);
             foreach (MessageSection section in MessageSections)
             {
-                List<int> pointers = new();
-                
-                foreach (Message message in section.Messages)
+                int pointerIndex = 0;
+                for (int messageIndex = 0; messageIndex < section.Messages.Count; pointerIndex++)
                 {
-                    pointers.Add(currentPointer);
-                    currentPointer += message.GetBytes().Length;
+                    if (section.Pointers[pointerIndex] == 0x0000)
+                    {
+                        continue;
+                    }
+                    section.Pointers[pointerIndex] = currentPointer;
+                    currentPointer += section.Messages[messageIndex].GetBytes().Length;
+                    messageIndex++;
                 }
-
-                section.Pointers = pointers;
             }
         }
     }
