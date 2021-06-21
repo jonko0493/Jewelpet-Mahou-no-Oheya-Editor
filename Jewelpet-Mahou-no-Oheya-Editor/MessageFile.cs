@@ -56,19 +56,14 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                     for (int j = 0x00; j < 0x190 && i + j < firstPointer + tableEntryOffset; j += 0x04) // message section pointers
                     {
                         int pointer = BitConverter.ToInt32(data.Skip(i + j).Take(4).ToArray());
-                        if (pointer == 0x0000 && j == 0x00)
-                        {
-                            messageSection.StartsWithZero = true;
-                            continue;
-                        }
-                        else if (i == mtblPointer + 0x10 && (j == 0x00 || (j == 0x04 && firstPointer == tableEntryOffset + messageTable.Length)))
+                        if (i == mtblPointer + 0x10 && pointer != 0 && (j == 0x00 || (j == 0x04 && firstPointer == tableEntryOffset + messageTable.Length)))
                         {
                             firstPointer = pointer;
                         }
                         messageSection.Pointers.Add(pointer);
                         if (pointer != 0x0000)
                         {
-                            messageSection.Messages.Add(new Message(data.TakeLast(data.Length - (pointer + tableEntryOffset)).ToArray()));
+                            messageSection.Messages.Add(new Message(data.TakeLast(data.Length - (pointer + tableEntryOffset)).ToArray(), pointer, (i - mtblPointer) / MessageSection.NORMAL_LENGTH, j / 4));
                         }
                     }
 
@@ -585,8 +580,9 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
         public byte[] GetBytes()
         {
             List<byte> bytes = new();
+            List<Message> allMessages = MessageSections.SelectMany(s => s.Messages).OrderBy(m => m.OriginalPointer).ToList();
 
-            RecalculatePointers();
+            RecalculatePointers(allMessages);
 
             bytes.AddRange(Encoding.ASCII.GetBytes("MTBL"));
             bytes.AddRange(BitConverter.GetBytes(0x00000010));
@@ -596,27 +592,20 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             // Pointers
             foreach (MessageSection section in MessageSections)
             {
-                if (section.StartsWithZero)
-                {
-                    bytes.AddRange(BitConverter.GetBytes(0x00000000));
-                }
                 foreach (int pointer in section.Pointers)
                 {
                     bytes.AddRange(BitConverter.GetBytes(pointer));
                 }
-                for (int i = section.Pointers.Count * 4 + (section.StartsWithZero ? 4 : 0); i < section.Length; i += 4)
+                for (int i = section.Pointers.Count * 4; i < section.Length; i += 4)
                 {
                     bytes.AddRange(BitConverter.GetBytes(0x00000000));
                 }
             }
 
             // Messages
-            foreach (MessageSection section in MessageSections)
+            foreach (Message message in allMessages)
             {
-                foreach (Message message in section.Messages)
-                {
-                    bytes.AddRange(message.GetBytes());
-                }
+                bytes.AddRange(message.GetBytes());
             }
 
             bytes.InsertRange(8, BitConverter.GetBytes(bytes.Count - 0x0C)); // minus header length & the missing length value
@@ -624,22 +613,13 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             return bytes.ToArray();
         }
 
-        public void RecalculatePointers()
+        public void RecalculatePointers(List<Message> allMessages)
         {
             int currentPointer = MessageSections.Sum(s => s.Length);
-            foreach (MessageSection section in MessageSections)
+            foreach (Message message in allMessages)
             {
-                int pointerIndex = 0;
-                for (int messageIndex = 0; messageIndex < section.Messages.Count; pointerIndex++)
-                {
-                    if (section.Pointers[pointerIndex] == 0x0000)
-                    {
-                        continue;
-                    }
-                    section.Pointers[pointerIndex] = currentPointer;
-                    currentPointer += section.Messages[messageIndex].GetBytes().Length;
-                    messageIndex++;
-                }
+                MessageSections[message.SectionIndex].Pointers[message.PointerIndex] = currentPointer;
+                currentPointer += message.GetBytes().Length;
             }
         }
     }
@@ -650,7 +630,6 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
         public List<Message> Messages { get; set; } = new List<Message>();
         public List<int> Pointers { get; set; } = new List<int>();
         public int Length { get; set; } = NORMAL_LENGTH;
-        public bool StartsWithZero { get; set; } = false;
 
         public override string ToString()
         {
@@ -669,9 +648,15 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
     public class Message
     {
         public string Text { get; set; }
+        public int OriginalPointer { get; set; }
+        public int SectionIndex { get; set; }
+        public int PointerIndex { get; set; }
 
-        public Message(byte[] data)
+        public Message(byte[] data, int originalPointer, int sectionIndex, int pointerIndex)
         {
+            OriginalPointer = originalPointer;
+            SectionIndex = sectionIndex;
+            PointerIndex = pointerIndex;
             Text = "";
             for (int i = 0; i < data.Length - 1; i += 2)
             {
