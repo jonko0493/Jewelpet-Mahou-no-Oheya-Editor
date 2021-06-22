@@ -135,6 +135,15 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             return bitmap;
         }
 
+        public void SetImage(Bitmap bitmap)
+        {
+            // at least for now we're going to enforce same tile size
+            if (bitmap.Width != TileWidth * 2 && bitmap.Height != TileHeight * 2)
+            {
+                throw new ArgumentException($"Bitmap size does not match expected size of {TileWidth * 2} x {TileHeight * 2}");
+            }
+        }
+
         public byte[] GetRiffPaletteBytes()
         {
             List<byte> riffBytes = new List<byte>();

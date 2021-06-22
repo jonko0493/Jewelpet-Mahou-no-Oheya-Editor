@@ -2,6 +2,7 @@
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -25,6 +26,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
     public partial class MainWindow : Window
     {
         private MessageFile _messageFile;
+        private GfntFile _gfntFile;
         private GtsfFile _gtsfFile;
         private string BaseWindowTitle = "Jewelpet Mahou no Oheya Editor";
 
@@ -143,46 +145,51 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             messageTextBox.MessageListBox.Items.Refresh();
         }
 
-        private void LoadGfntFileButton_Click(object sender, RoutedEventArgs e)
+        private void LoadGraphicsFileButton_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog()
             {
-                Filter = "GFNT files|*.cmp;*.gfnt|Compressed GFNT file|*.cmp|Decompressed GFNT file|*.gfnt"
+                Filter = "Graphics files|*.cmp;*.gfnt;*.gtpc|Compressed graphics file|*.cmp|Decompressed GFNT file|*.gfnt|Decompressed GTPC file|*.gtpc"
             };
             if (openFileDialog.ShowDialog() == true)
             {
-                GfntFile gfntFile;
-                if (openFileDialog.FileName.EndsWith(".cmp"))
+                string fileType = Helpers.IdentifyFileType(openFileDialog.FileName);
+
+                if (fileType.Contains("Graphics Tile File"))
                 {
-                    gfntFile = GfntFile.ParseFromCompressedFile(openFileDialog.FileName);
+                    if (fileType.Contains("Decompressed"))
+                    {
+                        _gfntFile = GfntFile.ParseFromDecompressedFile(openFileDialog.FileName);
+                    }
+                    else
+                    {
+                        _gfntFile = GfntFile.ParseFromCompressedFile(openFileDialog.FileName);
+                    }
+
+                    graphicsStackPanel.Children.Clear();
+                    graphicsTabControl.Items.Clear();
+                    graphicsTabControl.Items.Add(new TabItem { Header = "GFNT" });
+                    graphicsTabControl.SelectedIndex = 0;
+                    graphicsListBox.ItemsSource = new List<object>();
+
+                    var image = _gfntFile.GetImage();
+                    graphicsStackPanel.Children.Add(new Image { Source = Helpers.GetBitmapImageFromBitmap(image), MaxWidth = image.Width * 2, MaxHeight = image.Height * 2 });
+                }
+                else if (fileType.Contains("Graphics Map/Animation File"))
+                {
+                    _gtsfFile = GtsfFile.ParseFromFile(openFileDialog.FileName);
+
+                    graphicsTabControl.Items.Clear();
+                    graphicsTabControl.Items.Add(new TabItem { Header = "GTSF" });
+                    graphicsTabControl.Items.Add(new TabItem { Header = "GTSH" });
+                    graphicsTabControl.SelectedIndex = 0;
+
+                    graphicsListBox.ItemsSource = _gtsfFile.GfuvFiles;
                 }
                 else
                 {
-                    gfntFile = GfntFile.ParseFromDecompressedFile(openFileDialog.FileName);
+                    MessageBox.Show("Not a valid graphics file.");
                 }
-
-                graphicsStackPanel.Children.Clear();
-
-                var image = gfntFile.GetImage();
-                graphicsStackPanel.Children.Add(new Image { Source = Helpers.GetBitmapImageFromBitmap(image), MaxWidth = image.Width * 2, MaxHeight = image.Height * 2 });
-            }
-        }
-
-        private void LoadGtsfFileButton_Click(object sender, RoutedEventArgs e)
-        {
-            OpenFileDialog openFileDialog = new OpenFileDialog
-            {
-                Filter = "GTPC files|*.cmp;*.gtpc|Compressed GTPC file|*.cmp|Decompressed GTPC file|*.gtpc"
-            };
-            if (openFileDialog.ShowDialog() == true)
-            {
-                _gtsfFile = GtsfFile.ParseFromFile(openFileDialog.FileName);
-
-                graphicsTabControl.Items.Clear();
-                graphicsTabControl.Items.Add(new TabItem { Header = "GTSF" });
-                graphicsTabControl.Items.Add(new TabItem { Header = "GTSH" });
-
-                graphicsListBox.ItemsSource = _gtsfFile.GfuvFiles;
             }
         }
 
@@ -254,18 +261,47 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                 switch (((TabItem)graphicsTabControl.SelectedItem).Header)
                 {
                     case "GFNT":
-                        // do nothing; loader already handles this case
+                        exportTileBitmapButton.IsEnabled = true;
                         break;
 
                     case "GTSF":
+                        exportTileBitmapButton.IsEnabled = true;
                         graphicsListBox.ItemsSource = _gtsfFile.GfuvFiles;
                         break;
 
                     case "GTSH":
+                        exportTileBitmapButton.IsEnabled = false;
                         graphicsListBox.ItemsSource = _gtsfFile.GtshFile.SpriteDefs;
                         break;
                 }
                 graphicsListBox.Items.Refresh();
+            }
+        }
+
+        private void ExportTileBitmapButton_Click(object sender, RoutedEventArgs e)
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog()
+            {
+                Filter = "PNG file|*.png"
+            };
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                GfntFile gfntFile;
+                switch (((TabItem)graphicsTabControl.SelectedItem).Header)
+                {
+                    case "GFNT":
+                        gfntFile = _gfntFile;
+                        break;
+
+                    case "GTSF":
+                        gfntFile = ((GfuvFile)graphicsListBox.SelectedItem).AssociatedGfntFile;
+                        break;
+
+                    default:
+                        gfntFile = new GfntFile();
+                        break;
+                }
+                gfntFile.GetImage().Save(saveFileDialog.FileName, ImageFormat.Png);
             }
         }
     }
