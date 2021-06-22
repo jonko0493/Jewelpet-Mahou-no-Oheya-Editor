@@ -66,14 +66,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                 {
                     gfuvFile.AssociatedGfntFile = null;
                 }
-                else if (Path.GetExtension(associatedFile) == ".cmp")
-                {
-                    gfuvFile.AssociatedGfntFile = GfntFile.ParseFromCompressedFile(associatedFile);
-                }
-                else
-                {
-                    gfuvFile.AssociatedGfntFile = GfntFile.ParseFromDecompressedFile(associatedFile);
-                }
+                gfuvFile.AssociatedGfntFile = GfntFile.ParseFromFile(associatedFile);
 
                 gtsfFile.GfuvFiles.Add(gfuvFile);
                 index += 4; // next file header;
@@ -155,13 +148,24 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             using var associatedImage = AssociatedGfntFile.GetImage();
             foreach (var boundingBox in BoundingBoxes)
             {
-                if ((boundingBox.Width == 0 && boundingBox.Height == 0) || boundingBox.Width > associatedImage.Width || boundingBox.Height > associatedImage.Height)
+                if (boundingBox.Width == 0 && boundingBox.Height == 0)
                 {
                     tiles.Add((Bitmap)associatedImage.Clone());
                 }
+                else if (boundingBox.X > associatedImage.Width || boundingBox.Y > associatedImage.Height)
+                {
+                    tiles.Add(new Bitmap(1, 1));
+                }
                 else
                 {
-                    tiles.Add(associatedImage.Clone(boundingBox, System.Drawing.Imaging.PixelFormat.DontCare));
+                    Rectangle clampedBoundingBox = new Rectangle
+                    {
+                        X = boundingBox.X,
+                        Y = boundingBox.Y,
+                        Width = Math.Min(associatedImage.Width - boundingBox.X, boundingBox.Width),
+                        Height = Math.Min(associatedImage.Height - boundingBox.Y, boundingBox.Height),
+                    };
+                    tiles.Add(associatedImage.Clone(clampedBoundingBox, System.Drawing.Imaging.PixelFormat.DontCare));
                 }
             }
             return tiles;

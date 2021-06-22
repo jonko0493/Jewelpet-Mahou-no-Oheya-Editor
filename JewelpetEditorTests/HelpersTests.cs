@@ -22,6 +22,8 @@ namespace JewelpetEditorTests
         [Test]
         [TestCase(TestVariables.COMM_TALK_DECOMPRESSED, "Decompressed Message File")]
         [TestCase(TestVariables.ITEM_MESS_DECOMPRESSED, "Decompressed Message File")]
+        [TestCase(TestVariables.DATE_DECOMPRESSED, "Decompressed Graphics Tile File")]
+        [TestCase(TestVariables.MTO_LOGO_00_COMPRESSED, "Compressed Graphics Tile File")]
         public void IdentifyFilesTest(string file, string expectedResult)
         {
             var data = File.ReadAllBytes(file);

@@ -87,19 +87,21 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             return gfntFile;
         }
 
-        public static GfntFile ParseFromDecompressedFile(string file)
+        public static GfntFile ParseFromFile(string file)
         {
-            return ParseFromData(File.ReadAllBytes(file));
-        }
+            byte[] data = File.ReadAllBytes(file);
 
-        public static GfntFile ParseFromCompressedFile(string file)
-        {
-            return ParseFromData(Helpers.DecompressFile(file));
+            if (data.IdentifyDataType().Contains("Compressed"))
+            {
+                data = Helpers.DecompressFile(file);
+            }
+
+            return ParseFromData(data);
         }
 
         public Bitmap GetImage()
         {
-            var bitmap = new Bitmap(TileWidth * 2, TileHeight * 2);
+            var bitmap = new Bitmap(TileWidth, TileHeight);
             int pixelIndex = 0;
 
             for (int row = 0; row < 32 && pixelIndex < PixelData.Length; row++)

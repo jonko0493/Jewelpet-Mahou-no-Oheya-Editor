@@ -149,14 +149,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
 
                 if (fileType.Contains("Graphics Tile File"))
                 {
-                    if (fileType.Contains("Decompressed"))
-                    {
-                        _gfntFile = GfntFile.ParseFromDecompressedFile(openFileDialog.FileName);
-                    }
-                    else
-                    {
-                        _gfntFile = GfntFile.ParseFromCompressedFile(openFileDialog.FileName);
-                    }
+                    _gfntFile = GfntFile.ParseFromFile(openFileDialog.FileName);
 
                     graphicsStackPanel.Children.Clear();
                     graphicsTabControl.Items.Clear();
@@ -278,21 +271,12 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             };
             if (saveFileDialog.ShowDialog() == true)
             {
-                GfntFile gfntFile;
-                switch (((TabItem)graphicsTabControl.SelectedItem).Header)
+                GfntFile gfntFile = ((TabItem)graphicsTabControl.SelectedItem).Header switch
                 {
-                    case "GFNT":
-                        gfntFile = _gfntFile;
-                        break;
-
-                    case "GTSF":
-                        gfntFile = ((GfuvFile)graphicsListBox.SelectedItem).AssociatedGfntFile;
-                        break;
-
-                    default:
-                        gfntFile = new GfntFile();
-                        break;
-                }
+                    "GFNT" => _gfntFile,
+                    "GTSF" => ((GfuvFile)graphicsListBox.SelectedItem).AssociatedGfntFile,
+                    _ => new GfntFile(),
+                };
                 gfntFile.GetImage().Save(saveFileDialog.FileName, ImageFormat.Png);
             }
         }
