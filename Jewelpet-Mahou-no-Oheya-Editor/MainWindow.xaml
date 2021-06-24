@@ -33,7 +33,10 @@
                 <Grid>
                     <ToolBar x:Name="graphicsToolBar" HorizontalAlignment="Center" Height="30" VerticalAlignment="Top" Width="{Binding ElementName=mainWindow, Path=Width}">
                         <Button x:Name="loadGraphicsFileButton" Content="Load Graphics File" Click="LoadGraphicsFileButton_Click" />
+                        <Button x:Name="saveGraphicsFileButton" Content="Save Graphics File" Click="SaveGraphicsFileButton_Click" />
+                        <Button x:Name="exportPaletteButton" Content="Export Palette" Click="ExportPaletteButton_Click" IsEnabled="False" />
                         <Button x:Name="exportTileBitmapButton" Content="Export Tile Bitmap" Click="ExportTileBitmapButton_Click" IsEnabled="False" />
+                        <Button x:Name="importTileBitmapButton" Content="Import Tile Bitmap" Click="ImportTileBitmapButton_Click" IsEnabled="False" />
                     </ToolBar>
                     <TabControl x:Name="graphicsTabControl" Margin="0,30,0,0" SelectionChanged="GraphicsTabControl_SelectionChanged"/>
                     <ListBox x:Name="graphicsListBox"  Margin="0,56,419,0" SelectionChanged="GraphicsListBox_SelectionChanged"/>

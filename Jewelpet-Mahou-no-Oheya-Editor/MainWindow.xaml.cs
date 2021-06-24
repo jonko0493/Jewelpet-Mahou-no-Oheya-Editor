@@ -178,6 +178,28 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             }
         }
 
+        private void ChangeGtsfDetails()
+        {
+            var gfuvFile = (GfuvFile)graphicsListBox.SelectedItem;
+
+            graphicsStackPanel.Children.Clear();
+            graphicsStackPanel.Children.Add(new TextBlock { Text = "Tiles" });
+            var tiles = gfuvFile.GetTileImages();
+            foreach (var tile in tiles)
+            {
+                graphicsStackPanel.Children.Add(new Image { Source = Helpers.GetBitmapImageFromBitmap(tile), MaxWidth = tile.Width, MaxHeight = tile.Height });
+            }
+
+            graphicsStackPanel.Children.Add(new TextBlock { Text = "GFNT Tile File" });
+            var gfuvImage = gfuvFile.AssociatedGfntFile?.GetImage() ?? new System.Drawing.Bitmap(256, 394);
+            graphicsStackPanel.Children.Add(new Image
+            {
+                Source = Helpers.GetBitmapImageFromBitmap(gfuvImage),
+                MaxWidth = gfuvImage.Width * 2,
+                MaxHeight = gfuvImage.Height * 2
+            });
+        }
+
         private void GraphicsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (e.AddedItems.Count > 0)
@@ -187,24 +209,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                     switch (((TabItem)graphicsTabControl.SelectedItem).Header)
                     {
                         case "GTSF":
-                            var gfuvFile = (GfuvFile)graphicsListBox.SelectedItem;
-
-                            graphicsStackPanel.Children.Clear();
-                            graphicsStackPanel.Children.Add(new TextBlock { Text = "Tiles" });
-                            var tiles = gfuvFile.GetTileImages();
-                            foreach (var tile in tiles)
-                            {
-                                graphicsStackPanel.Children.Add(new Image { Source = Helpers.GetBitmapImageFromBitmap(tile), MaxWidth = tile.Width, MaxHeight = tile.Height });
-                            }
-
-                            graphicsStackPanel.Children.Add(new TextBlock { Text = "GFNT Tile File" });
-                            var gfuvImage = gfuvFile.AssociatedGfntFile?.GetImage() ?? new System.Drawing.Bitmap(256, 394);
-                            graphicsStackPanel.Children.Add(new Image
-                            {
-                                Source = Helpers.GetBitmapImageFromBitmap(gfuvImage),
-                                MaxWidth = gfuvImage.Width * 2,
-                                MaxHeight = gfuvImage.Height * 2
-                            });
+                            ChangeGtsfDetails();
                             break;
 
                         case "GTSH":
@@ -246,16 +251,22 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                 switch (((TabItem)graphicsTabControl.SelectedItem).Header)
                 {
                     case "GFNT":
+                        exportPaletteButton.IsEnabled = true;
                         exportTileBitmapButton.IsEnabled = true;
+                        importTileBitmapButton.IsEnabled = true;
                         break;
 
                     case "GTSF":
+                        exportPaletteButton.IsEnabled = true;
                         exportTileBitmapButton.IsEnabled = true;
+                        importTileBitmapButton.IsEnabled = true;
                         graphicsListBox.ItemsSource = _gtsfFile.GfuvFiles;
                         break;
 
                     case "GTSH":
+                        exportPaletteButton.IsEnabled = false;
                         exportTileBitmapButton.IsEnabled = false;
+                        importTileBitmapButton.IsEnabled = false;
                         graphicsListBox.ItemsSource = _gtsfFile.GtshFile.SpriteDefs;
                         break;
                 }
@@ -263,9 +274,33 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             }
         }
 
+        private void SaveGraphicsFileButton_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void ExportPaletteButton_Click(object sender, RoutedEventArgs e)
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog
+            {
+                Filter = "RIFF palette|*.pal",
+            };
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                GfntFile gfntFile = ((TabItem)graphicsTabControl.SelectedItem).Header switch
+                {
+                    "GFNT" => _gfntFile,
+                    "GTSF" => ((GfuvFile)graphicsListBox.SelectedItem).AssociatedGfntFile,
+                    _ => new GfntFile(),
+                };
+                gfntFile.SaveRiffPaletteToFile(saveFileDialog.FileName);
+                MessageBox.Show("Palette exported!");
+            }
+        }
+
         private void ExportTileBitmapButton_Click(object sender, RoutedEventArgs e)
         {
-            SaveFileDialog saveFileDialog = new SaveFileDialog()
+            SaveFileDialog saveFileDialog = new SaveFileDialog
             {
                 Filter = "PNG file|*.png"
             };
@@ -278,6 +313,35 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                     _ => new GfntFile(),
                 };
                 gfntFile.GetImage().Save(saveFileDialog.FileName, ImageFormat.Png);
+                MessageBox.Show("Tiles exported!");
+            }
+        }
+
+        private void ImportTileBitmapButton_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Filter = "PNG file|*.png"
+            };
+            if (openFileDialog.ShowDialog() == true)
+            {
+                GfntFile gfntFile = ((TabItem)graphicsTabControl.SelectedItem).Header switch
+                {
+                    "GFNT" => _gfntFile,
+                    "GTSF" => ((GfuvFile)graphicsListBox.SelectedItem).AssociatedGfntFile,
+                    _ => new GfntFile(),
+                };
+                gfntFile.SetImage(openFileDialog.FileName);
+
+                if ((string)((TabItem)graphicsTabControl.SelectedItem).Header == "GTSF")
+                {
+                    ChangeGtsfDetails();
+                }
+                else
+                {
+                    var image = _gfntFile.GetImage();
+                    graphicsStackPanel.Children.Add(new Image { Source = Helpers.GetBitmapImageFromBitmap(image), MaxWidth = image.Width * 2, MaxHeight = image.Height * 2 });
+                }
             }
         }
     }

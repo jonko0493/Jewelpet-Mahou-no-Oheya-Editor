@@ -77,11 +77,6 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                     short color = BitConverter.ToInt16(gfntFile.PaletteData.Skip(i).Take(2).ToArray());
                     gfntFile.Palette.Add(Color.FromArgb((color & 0x1F) << 3, ((color >> 5) & 0x1F) << 3, ((color >> 10) & 0x1F) << 3));
                 }
-
-                while (gfntFile.Palette.Count < 256)
-                {
-                    gfntFile.Palette.Add(Color.Black);
-                }
             }
 
             return gfntFile;
@@ -101,12 +96,13 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
 
         public Bitmap GetImage()
         {
-            var bitmap = new Bitmap(TileWidth, TileHeight);
+            int imageWidth = TileWidth * 2, imageHeight = TileHeight * 2;
+            var bitmap = new Bitmap(imageWidth, imageHeight);
             int pixelIndex = 0;
 
-            for (int row = 0; row < 32 && pixelIndex < PixelData.Length; row++)
+            for (int row = 0; row < imageWidth / 8 && pixelIndex < PixelData.Length; row++)
             {
-                for (int col = 0; col < 32 && pixelIndex < PixelData.Length; col++)
+                for (int col = 0; col < imageHeight / 8 && pixelIndex < PixelData.Length; col++)
                 {
                     for (int ypix = 0; ypix < TileHeight && pixelIndex < PixelData.Length; ypix++)
                     {
@@ -116,8 +112,8 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                             {
                                 for (int xypix = 0; xypix < 2 && pixelIndex < PixelData.Length; xypix++)
                                 {
-                                    bitmap.SetPixel((col << 3) + (xpix << 1) + xypix, (row << 3) + ypix,
-                                        Palette[PixelData[pixelIndex] >> (xypix << 2) & 0xF]);
+                                    bitmap.SetPixel((col * 8) + (xpix * 2) + xypix, (row * 8) + ypix,
+                                        Palette[PixelData[pixelIndex] >> (xypix * 4) & 0xF]);
                                 }
                                 pixelIndex++;
                             }
@@ -126,7 +122,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                         {
                             for (int xpix = 0; xpix < TileWidth && pixelIndex < PixelData.Length; xpix++)
                             {
-                                bitmap.SetPixel((col << 3) + xpix, (row << 3) + ypix,
+                                bitmap.SetPixel((col * 8) + xpix, (row * 8) + ypix,
                                     Palette[PixelData[pixelIndex++]]);
                             }
                         }
@@ -134,6 +130,10 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                 }
             }
             return bitmap;
+        }
+        public void SetImage(string bitmapFile)
+        {
+            SetImage(new Bitmap(bitmapFile));
         }
 
         public void SetImage(Bitmap bitmap)
@@ -143,14 +143,54 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             {
                 throw new ArgumentException($"Bitmap size does not match expected size of {TileWidth * 2} x {TileHeight * 2}");
             }
+
+            List<byte> pixelData = new();
+
+            for (int row = 0; row < bitmap.Width / 8 && pixelData.Count < PixelData.Length; row++)
+            {
+                for (int col = 0; col < bitmap.Height / 8 && pixelData.Count < PixelData.Length; col++)
+                {
+                    for (int ypix = 0; ypix < TileHeight && pixelData.Count < PixelData.Length; ypix++)
+                    {
+                        if (ImageTileForm == TileForm.GBA_4BPP)
+                        {
+                            for (int xpix = 0; xpix < TileWidth / 2 && pixelData.Count < PixelData.Length; xpix++)
+                            {
+                                int color1 = Helpers.ClosestColorIndex(Palette, bitmap.GetPixel((col * 8) + (xpix * 2), (row * 8) + ypix));
+                                int color2 = Helpers.ClosestColorIndex(Palette, bitmap.GetPixel((col * 8) + (xpix * 2) + 1, (row * 8) + ypix));
+
+                                pixelData.Add((byte)(color1 + (color2 << 4)));
+                            }
+                        }
+                        else
+                        {
+                            for (int xpix = 0; xpix < TileWidth && pixelData.Count < PixelData.Length; xpix++)
+                            {
+                                pixelData.Add((byte)Helpers.ClosestColorIndex(Palette, bitmap.GetPixel((col * 8) + xpix, (row * 8) + ypix)));
+                            }
+                        }
+                    }
+                }
+            }
+
+            PixelData = pixelData.ToArray();
         }
 
         public byte[] GetRiffPaletteBytes()
         {
             List<byte> riffBytes = new List<byte>();
 
-            int documentSize = 16 + Palette.Count * 4;
-            ushort count = (ushort)Palette.Count;
+            Color[] tempPaletteArray = new Color[Palette.Count];
+            Palette.CopyTo(tempPaletteArray);
+            var tempPalette = tempPaletteArray.ToList();
+
+            while (tempPalette.Count < 256)
+            {
+                tempPalette.Add(Color.Black);
+            }
+
+            int documentSize = 16 + tempPalette.Count * 4;
+            ushort count = (ushort)tempPalette.Count;
 
             riffBytes.AddRange(Encoding.ASCII.GetBytes("RIFF"));
             riffBytes.AddRange(BitConverter.GetBytes(documentSize));
@@ -159,7 +199,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             riffBytes.AddRange(new byte[] { 0, 3 }); // version
             riffBytes.AddRange(BitConverter.GetBytes(count));
 
-            foreach (Color color in Palette)
+            foreach (Color color in tempPalette)
             {
                 riffBytes.Add(color.R);
                 riffBytes.Add(color.G);
@@ -168,6 +208,11 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             }
 
             return riffBytes.ToArray();
+        }
+
+        public void SaveRiffPaletteToFile(string file)
+        {
+            File.WriteAllBytes(file, GetRiffPaletteBytes());
         }
 
     }

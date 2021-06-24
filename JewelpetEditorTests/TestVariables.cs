@@ -13,6 +13,8 @@
 
         public const string BCHARM01_A3_DECOMPRESSED = ".\\inputs\\Graphics\\BCharm01_a3.gfnt";
         public const string DATE_DECOMPRESSED = ".\\inputs\\Graphics\\Date.gfnt";
+        public const string FONT_11P_00_COMPRESSED = ".\\inputs\\Graphics\\Font11p00.cmp";
         public const string MTO_LOGO_00_COMPRESSED = ".\\inputs\\Graphics\\mto_logo_00.cmp";
+        public const string NITEN_LOGO_COMPRESSED = ".\\inputs\\Graphics\\niten_logo.cmp";
     }
 }
