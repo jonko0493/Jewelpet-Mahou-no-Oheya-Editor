@@ -21,7 +21,6 @@ namespace JewelpetEditorTests
             MessageFile messageFile = MessageFile.ParseFromData(dataOnDisk);
 
             byte[] dataInMemory = messageFile.GetBytes();
-            File.WriteAllBytes("test.cmp.decompressed", dataInMemory);
             Assert.AreEqual(dataOnDisk, dataInMemory, $"File: {file}");
         }
     }

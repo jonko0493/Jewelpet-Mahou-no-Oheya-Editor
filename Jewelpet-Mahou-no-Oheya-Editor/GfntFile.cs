@@ -9,26 +9,26 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
 {
     public class GfntFile
     {
-        public int PaletteLengthContainingInt { get; set; }
+        public int IntContainingPaletteLength { get; set; }
         public int PaletteLength 
         { 
             get 
             {
-                int lsbAdjusted = (PaletteLengthContainingInt & 0x7F) - 0x1C;
+                int lsbAdjusted = (IntContainingPaletteLength & 0x7F) - 0x1C;
                 if (lsbAdjusted == 0)
                 {
                     return 0x200;
                 }
                 else
                 {
-                    return lsbAdjusted * PaletteNumber;
+                    return lsbAdjusted * PaletteMultiplier;
                 }
             }
         }
         public TileForm ImageTileForm { get; set; }
         public int TileWidth { get; set; }
         public int TileHeight { get; set; }
-        public int PaletteNumber { get; set; }
+        public int PaletteMultiplier { get; set; }
         public byte[] PixelData { get; set; }
         public byte[] PaletteData { get; set; }
 
@@ -46,11 +46,11 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
         {
             GfntFile gfntFile = new GfntFile
             {
-                PaletteLengthContainingInt = BitConverter.ToInt32(data.Skip(4).Take(4).ToArray()),
+                IntContainingPaletteLength = BitConverter.ToInt32(data.Skip(4).Take(4).ToArray()),
                 ImageTileForm = (TileForm)BitConverter.ToInt32(data.Skip(0x0C).Take(4).ToArray()),
                 TileWidth = (int)Math.Pow(2, 3 + BitConverter.ToInt32(data.Skip(0x10).Take(4).ToArray())),
                 TileHeight = (int)Math.Pow(2, 3 + BitConverter.ToInt32(data.Skip(0x14).Take(4).ToArray())),
-                PaletteNumber = BitConverter.ToInt32(data.Skip(0x18).Take(4).ToArray()),
+                PaletteMultiplier = BitConverter.ToInt32(data.Skip(0x18).Take(4).ToArray()),
             };
 
             gfntFile.PixelData = data.Skip(0x1C).Take(data.Length - 0x1C - gfntFile.PaletteLength).ToArray(); // minus header, minus palette
@@ -92,6 +92,23 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             }
 
             return ParseFromData(data);
+        }
+
+        public byte[] GetBytes()
+        {
+            List<byte> bytes = new();
+
+            bytes.AddRange(Encoding.ASCII.GetBytes("GFNT"));
+            bytes.AddRange(BitConverter.GetBytes(IntContainingPaletteLength));
+            bytes.AddRange(Encoding.ASCII.GetBytes("1.02"));
+            bytes.AddRange(BitConverter.GetBytes((int)ImageTileForm));
+            bytes.AddRange(BitConverter.GetBytes((int)Math.Log2(TileWidth) - 3));
+            bytes.AddRange(BitConverter.GetBytes((int)Math.Log2(TileHeight) - 3));
+            bytes.AddRange(BitConverter.GetBytes(PaletteMultiplier));
+            bytes.AddRange(PixelData);
+            bytes.AddRange(PaletteData);
+
+            return bytes.ToArray();
         }
 
         public Bitmap GetImage()

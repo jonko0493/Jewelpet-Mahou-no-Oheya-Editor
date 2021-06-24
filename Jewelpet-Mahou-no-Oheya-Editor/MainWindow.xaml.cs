@@ -19,7 +19,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
     {
         private MessageFile _messageFile;
         private GfntFile _gfntFile;
-        private GtsfFile _gtsfFile;
+        private GtpcFile _gtpcFile;
         private string BaseWindowTitle = "Jewelpet Mahou no Oheya Editor";
 
         public MainWindow()
@@ -162,19 +162,36 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                 }
                 else if (fileType.Contains("Graphics Map/Animation File"))
                 {
-                    _gtsfFile = GtsfFile.ParseFromFile(openFileDialog.FileName);
+                    _gtpcFile = new GtpcFile(openFileDialog.FileName);
 
                     graphicsTabControl.Items.Clear();
                     graphicsTabControl.Items.Add(new TabItem { Header = "GTSF" });
                     graphicsTabControl.Items.Add(new TabItem { Header = "GTSH" });
                     graphicsTabControl.SelectedIndex = 0;
 
-                    graphicsListBox.ItemsSource = _gtsfFile.GfuvFiles;
+                    graphicsListBox.ItemsSource = _gtpcFile.Gtsf.GfuvFiles;
                 }
                 else
                 {
                     MessageBox.Show("Not a valid graphics file.");
                 }
+            }
+        }
+
+        private void SaveGraphicsFileButton_Click(object sender, RoutedEventArgs e)
+        {
+            switch (((TabItem)graphicsTabControl.SelectedItem).Header)
+            {
+                case "GFNT":
+                    break;
+
+                case "GTSF":
+                case "GTSH":
+                    break;
+
+                default:
+                    MessageBox.Show("Somehow you've gotten me into a weird state where I don't recognize what graphics file I have open!");
+                    break;
             }
         }
 
@@ -217,7 +234,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
 
                             graphicsStackPanel.Children.Clear();
                             graphicsStackPanel.Children.Add(new TextBlock { Text = "Sprite" });
-                            var spriteImage = spriteDef.GetImage(_gtsfFile.GfuvFiles);
+                            var spriteImage = spriteDef.GetImage(_gtpcFile.Gtsf.GfuvFiles);
                             graphicsStackPanel.Children.Add(new Image
                             {
                                 Source = Helpers.GetBitmapImageFromBitmap(spriteImage),
@@ -228,7 +245,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                             {
                                 graphicsStackPanel.Children.Add(new Separator());
                                 graphicsStackPanel.Children.Add(new TextBlock { Text = $"File Index: {tileInstance.GfuvIndex}" +
-                                    $"({_gtsfFile.GfuvFiles.ElementAtOrDefault(tileInstance.GfuvIndex)?.FileName})," +
+                                    $"({_gtpcFile.Gtsf.GfuvFiles.ElementAtOrDefault(tileInstance.GfuvIndex)?.FileName})," +
                                     $"Tile Index: {tileInstance.TileIndex}, Rotation: {tileInstance.Rotation:X2}, Unknown Byte: {tileInstance.UnknownByte:X2}" });
                             }
                             break;
@@ -260,23 +277,18 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                         exportPaletteButton.IsEnabled = true;
                         exportTileBitmapButton.IsEnabled = true;
                         importTileBitmapButton.IsEnabled = true;
-                        graphicsListBox.ItemsSource = _gtsfFile.GfuvFiles;
+                        graphicsListBox.ItemsSource = _gtpcFile.Gtsf.GfuvFiles;
                         break;
 
                     case "GTSH":
                         exportPaletteButton.IsEnabled = false;
                         exportTileBitmapButton.IsEnabled = false;
                         importTileBitmapButton.IsEnabled = false;
-                        graphicsListBox.ItemsSource = _gtsfFile.GtshFile.SpriteDefs;
+                        graphicsListBox.ItemsSource = _gtpcFile.Gtsf.GtshFile.SpriteDefs;
                         break;
                 }
                 graphicsListBox.Items.Refresh();
             }
-        }
-
-        private void SaveGraphicsFileButton_Click(object sender, RoutedEventArgs e)
-        {
-
         }
 
         private void ExportPaletteButton_Click(object sender, RoutedEventArgs e)

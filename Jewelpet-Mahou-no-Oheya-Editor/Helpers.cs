@@ -66,9 +66,12 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             return File.ReadAllBytes(file).IdentifyDataType();
         }
 
-        public static string IdentifyDataType(this byte[] data)
+        public static string IdentifyDataType(this byte[] dataRef)
         {
-            string compressionStatus = "";
+            byte[] data = new byte[dataRef.Length];
+            dataRef.CopyTo(data, 0);
+
+            string compressionStatus;
 
             using MemoryStream memoryStream = new MemoryStream(data);
             if (Lz10Compression.Identify(memoryStream))
