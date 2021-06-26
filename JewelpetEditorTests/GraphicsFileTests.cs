@@ -68,7 +68,7 @@ namespace JewelpetEditorTests
         [Test]
         [TestCase(TestVariables.GT_LOGO_COMPRESSED)]
         [TestCase(TestVariables.GT_COMMON_NEW_COMPRESSED)]
-        public void GtpcParseSaveInverseFunctionsTest(string file)
+        public void GtpcParseGetBytesInverseFunctionsTest(string file)
         {
             GtpcFile gtpcFile = new(file);
             byte[] dataOnDisk = Helpers.DecompressFile(file);
@@ -76,6 +76,35 @@ namespace JewelpetEditorTests
 
             File.WriteAllBytes("test.cmp.decompressed", dataInMemory);
             Assert.AreEqual(dataOnDisk, dataInMemory);
+        }
+
+        [Test]
+        [TestCase(TestVariables.GT_LOGO_COMPRESSED)]
+        [TestCase(TestVariables.GT_COMMON_NEW_COMPRESSED)]
+        public void GtpcFullSaveTest(string file)
+        {
+            file = Path.GetFullPath(file);
+            GtpcFile gtpcFile = new(file);
+            var tempDirectory = Directory.CreateDirectory("temp");
+            gtpcFile.Save(Path.Combine(tempDirectory.FullName, Path.GetFileName(file)));
+
+            string[] originalFiles = Directory.GetFiles(Path.GetDirectoryName(file));
+            string[] currentFiles = Directory.GetFiles(tempDirectory.FullName);
+
+            try
+            {
+                Assert.AreEqual(originalFiles.Select(f => Path.GetFileName(f)), currentFiles.Select(f => Path.GetFileName(f)));
+
+                foreach (string fileName in originalFiles)
+                {
+                    Assert.AreEqual(Helpers.DecompressFile(fileName), Helpers.DecompressFile(Path.Combine(tempDirectory.FullName, Path.GetFileName(fileName))),
+                        $"{Path.GetFileName(fileName)} not equal");
+                }
+            }
+            finally
+            {
+                Directory.Delete(tempDirectory.FullName, true);
+            }
         }
     }
 }

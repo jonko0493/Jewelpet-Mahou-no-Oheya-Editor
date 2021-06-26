@@ -40,11 +40,24 @@
                     </ToolBar>
                     <TabControl x:Name="graphicsTabControl" Margin="0,30,0,0" SelectionChanged="GraphicsTabControl_SelectionChanged"/>
                     <ListBox x:Name="graphicsListBox"  Margin="0,56,419,0" SelectionChanged="GraphicsListBox_SelectionChanged"/>
-                    <ScrollViewer Margin="375,56,0,0">
-                        <DockPanel>
-                            <StackPanel x:Name="graphicsStackPanel" />
-                        </DockPanel>
-                    </ScrollViewer>
+                    <DockPanel Margin="380,56,0,0">
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
+                            <ComboBox x:Name="bgColorComboBox" SelectionChanged="BgColorComboBox_SelectionChanged">
+                                <ComboBoxItem Content="White" IsSelected="True" />
+                                <ComboBoxItem Content="Black"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <ScrollViewer DockPanel.Dock="Top" MaxHeight="750">
+                            <DockPanel>
+                                <StackPanel x:Name="graphicsStackPanel" DockPanel.Dock="Top" />
+                            </DockPanel>
+                        </ScrollViewer>
+                        <ScrollViewer DockPanel.Dock="Bottom">
+                            <DockPanel>
+                                <StackPanel x:Name="graphicsEditPanel" DockPanel.Dock="Top" />
+                            </DockPanel>
+                        </ScrollViewer>
+                    </DockPanel>
                 </Grid>
             </TabItem>
         </TabControl>

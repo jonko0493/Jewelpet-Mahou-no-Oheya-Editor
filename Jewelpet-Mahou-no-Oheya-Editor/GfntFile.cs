@@ -111,6 +111,18 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             return bytes.ToArray();
         }
 
+        public void SaveToFile(string file)
+        {
+            if (Path.GetExtension(file) == ".cmp")
+            {
+                Helpers.SaveToCompressedFile(file, GetBytes());
+            }
+            else
+            {
+                File.WriteAllBytes(file, GetBytes());
+            }
+        }
+
         public Bitmap GetImage()
         {
             int imageWidth = TileWidth * 2, imageHeight = TileHeight * 2;

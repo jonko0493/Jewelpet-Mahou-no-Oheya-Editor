@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Path = System.IO.Path;
 
 namespace Jewelpet_Mahou_no_Oheya_Editor
@@ -152,6 +153,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                     _gfntFile = GfntFile.ParseFromFile(openFileDialog.FileName);
 
                     graphicsStackPanel.Children.Clear();
+                    graphicsEditPanel.Children.Clear();
                     graphicsTabControl.Items.Clear();
                     graphicsTabControl.Items.Add(new TabItem { Header = "GFNT" });
                     graphicsTabControl.SelectedIndex = 0;
@@ -180,13 +182,26 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
 
         private void SaveGraphicsFileButton_Click(object sender, RoutedEventArgs e)
         {
+            SaveFileDialog saveFileDialog = new();
             switch (((TabItem)graphicsTabControl.SelectedItem).Header)
             {
                 case "GFNT":
+                    saveFileDialog.Filter = "GFNT files|*.cmp;*.gfnt|Compressed GFNT file|*.cmp|Decompressed GFNT file|*.gfnt";
+                    if (saveFileDialog.ShowDialog() == true)
+                    {
+                        _gfntFile.SaveToFile(saveFileDialog.FileName);
+                        MessageBox.Show("Saved successfully!");
+                    }
                     break;
 
                 case "GTSF":
                 case "GTSH":
+                    saveFileDialog.Filter = "GTPC files|*.cmp;*.gtpc|Compressed GTPC file|*.cmp|Decompressed GTPC file|*.gtpc";
+                    if (saveFileDialog.ShowDialog() == true)
+                    {
+                        _gtpcFile.Save(saveFileDialog.FileName);
+                        MessageBox.Show("Saved successfully!");
+                    }
                     break;
 
                 default:
@@ -195,11 +210,8 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             }
         }
 
-        private void ChangeGtsfDetails()
+        private void ChangeGtsfTileImages(GfuvFile gfuvFile)
         {
-            var gfuvFile = (GfuvFile)graphicsListBox.SelectedItem;
-
-            graphicsStackPanel.Children.Clear();
             graphicsStackPanel.Children.Add(new TextBlock { Text = "Tiles" });
             var tiles = gfuvFile.GetTileImages();
             foreach (var tile in tiles)
@@ -213,8 +225,91 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             {
                 Source = Helpers.GetBitmapImageFromBitmap(gfuvImage),
                 MaxWidth = gfuvImage.Width * 2,
-                MaxHeight = gfuvImage.Height * 2
+                MaxHeight = gfuvImage.Height * 2,
             });
+        }
+
+        private void ChangeGtsfDetails()
+        {
+            var gfuvFile = (GfuvFile)graphicsListBox.SelectedItem;
+
+            ChangeGtsfTileImages(gfuvFile);
+
+            for (int i = 0; i < gfuvFile.TilesCount; i++)
+            {
+                var xTextBox = new GfuvTileTextBox
+                {
+                    Gfuv = gfuvFile,
+                    TileIndex = i,
+                    TileImage = (Image)graphicsStackPanel.Children[i + 1], // plus 1 to get past the TextBlock
+                    Property = GfuvTileTextBox.BoundingBoxProperty.X,
+                    Text = gfuvFile.BoundingBoxes[i].X.ToString(),
+                };
+                var yTextBox = new GfuvTileTextBox
+                {
+                    Gfuv = gfuvFile,
+                    TileIndex = i,
+                    TileImage = (Image)graphicsStackPanel.Children[i + 1], // plus 1 to get past the TextBlock
+                    Property = GfuvTileTextBox.BoundingBoxProperty.Y,
+                    Text = gfuvFile.BoundingBoxes[i].Y.ToString(),
+                };
+                var widthTextBox = new GfuvTileTextBox
+                {
+                    Gfuv = gfuvFile,
+                    TileIndex = i,
+                    TileImage = (Image)graphicsStackPanel.Children[i + 1], // plus 1 to get past the TextBlock
+                    Property = GfuvTileTextBox.BoundingBoxProperty.Width,
+                    Text = gfuvFile.BoundingBoxes[i].Width.ToString(),
+                };
+                var heightTextBox = new GfuvTileTextBox
+                {
+                    Gfuv = gfuvFile,
+                    TileIndex = i,
+                    TileImage = (Image)graphicsStackPanel.Children[i + 1], // plus 1 to get past the TextBlock
+                    Property = GfuvTileTextBox.BoundingBoxProperty.Height,
+                    Text = gfuvFile.BoundingBoxes[i].Height.ToString(),
+                };
+
+                xTextBox.TextChanged += GfuvTextBox_TextChanged;
+                yTextBox.TextChanged += GfuvTextBox_TextChanged;
+                widthTextBox.TextChanged += GfuvTextBox_TextChanged;
+                heightTextBox.TextChanged += GfuvTextBox_TextChanged;
+
+                StackPanel tileEditStackPanel = new() { Orientation = Orientation.Horizontal };
+                tileEditStackPanel.Children.Add(xTextBox);
+                tileEditStackPanel.Children.Add(yTextBox);
+                tileEditStackPanel.Children.Add(widthTextBox);
+                tileEditStackPanel.Children.Add(heightTextBox);
+
+                graphicsEditPanel.Children.Add(tileEditStackPanel);
+            }
+        }
+
+        private void GfuvTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            var textBox = (GfuvTileTextBox)sender;
+            if (short.TryParse(textBox.Text, out short value))
+            {
+                var rect = textBox.Gfuv.BoundingBoxes[textBox.TileIndex];
+                switch (textBox.Property)
+                {
+                    case GfuvTileTextBox.BoundingBoxProperty.X:
+                        rect.X = value;
+                        break;
+                    case GfuvTileTextBox.BoundingBoxProperty.Y:
+                        rect.Y = value;
+                        break;
+                    case GfuvTileTextBox.BoundingBoxProperty.Width:
+                        rect.Width = value;
+                        break;
+                    case GfuvTileTextBox.BoundingBoxProperty.Height:
+                        rect.Height = value;
+                        break;
+                }
+                textBox.Gfuv.BoundingBoxes[textBox.TileIndex] = rect;
+                graphicsStackPanel.Children.Clear();
+                ChangeGtsfTileImages(textBox.Gfuv);
+            }
         }
 
         private void GraphicsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -223,6 +318,9 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             {
                 try
                 {
+                    graphicsStackPanel.Children.Clear();
+                    graphicsEditPanel.Children.Clear();
+
                     switch (((TabItem)graphicsTabControl.SelectedItem).Header)
                     {
                         case "GTSF":
@@ -232,7 +330,6 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                         case "GTSH":
                             var spriteDef = (GtshFile.SpriteDef)graphicsListBox.SelectedItem;
 
-                            graphicsStackPanel.Children.Clear();
                             graphicsStackPanel.Children.Add(new TextBlock { Text = "Sprite" });
                             var spriteImage = spriteDef.GetImage(_gtpcFile.Gtsf.GfuvFiles);
                             graphicsStackPanel.Children.Add(new Image
@@ -243,8 +340,8 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                             });
                             foreach (var tileInstance in spriteDef.TileInstances)
                             {
-                                graphicsStackPanel.Children.Add(new Separator());
-                                graphicsStackPanel.Children.Add(new TextBlock { Text = $"File Index: {tileInstance.GfuvIndex}" +
+                                graphicsEditPanel.Children.Add(new Separator());
+                                graphicsEditPanel.Children.Add(new TextBlock { Text = $"File Index: {tileInstance.GfuvIndex}" +
                                     $"({_gtpcFile.Gtsf.GfuvFiles.ElementAtOrDefault(tileInstance.GfuvIndex)?.FileName})," +
                                     $"Tile Index: {tileInstance.TileIndex}, Rotation: {tileInstance.Rotation:X2}, Unknown Byte: {tileInstance.UnknownByte:X2}" });
                             }
@@ -265,6 +362,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                 graphicsListBox.ItemsSource = null;
                 graphicsListBox.Items.Refresh();
                 graphicsStackPanel.Children.Clear();
+                graphicsEditPanel.Children.Clear();
                 switch (((TabItem)graphicsTabControl.SelectedItem).Header)
                 {
                     case "GFNT":
@@ -352,7 +450,25 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                 else
                 {
                     var image = _gfntFile.GetImage();
+                    graphicsStackPanel.Children.Clear();
                     graphicsStackPanel.Children.Add(new Image { Source = Helpers.GetBitmapImageFromBitmap(image), MaxWidth = image.Width * 2, MaxHeight = image.Height * 2 });
+                }
+            }
+        }
+
+        private void BgColorComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (graphicsStackPanel is not null)
+            {
+                switch (((ComboBoxItem)bgColorComboBox.SelectedItem).Content)
+                {
+                    case "White":
+                        graphicsStackPanel.Background = Brushes.White;
+                        break;
+
+                    case "Black":
+                        graphicsStackPanel.Background = Brushes.Black;
+                        break;
                 }
             }
         }

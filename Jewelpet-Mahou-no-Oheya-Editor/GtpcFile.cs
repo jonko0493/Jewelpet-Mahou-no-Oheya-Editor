@@ -9,11 +9,13 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
 {
     public class GtpcFile
     {
+        public string FileName { get; set; }
         public GtsfFile Gtsf { get; set; }
         public byte[] RestOfFile { get; set; }
 
         public GtpcFile(string file)
         {
+            FileName = file;
             Gtsf = GtsfFile.ParseFromFile(file, out byte[] data);
             if (Gtsf.Length < data.Length)
             {
@@ -33,6 +35,26 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             bytes.AddRange(RestOfFile);
 
             return bytes.ToArray();
+        }
+
+        public void Save(string file)
+        {
+            if (Path.GetExtension(file) == ".cmp")
+            {
+                Helpers.SaveToCompressedFile(file, GetBytes());
+            }
+            else
+            {
+                File.WriteAllBytes(file, GetBytes());
+            }
+            foreach (GfuvFile gfuvFile in Gtsf.GfuvFiles)
+            {
+                if (gfuvFile.AssociatedGfntFile is not null)
+                {
+                    string filePath = $"{Path.Combine(Path.GetDirectoryName(file), gfuvFile.FileName)}.{(gfuvFile.Compressed ? "cmp" : "gfnt")}";
+                    gfuvFile.AssociatedGfntFile.SaveToFile(filePath);
+                }
+            }
         }
     }
 
@@ -95,6 +117,10 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
                     gfuvFile.AssociatedGfntFile = null;
                 }
                 gfuvFile.AssociatedGfntFile = GfntFile.ParseFromFile(associatedFile);
+                if (Path.GetExtension(associatedFile) == ".cmp")
+                {
+                    gfuvFile.Compressed = true;
+                }
 
                 gtsfFile.GfuvFiles.Add(gfuvFile);
                 index += 4; // next file header;
@@ -171,6 +197,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
 
     public class GfuvFile
     {
+        public bool Compressed { get; set; } = false;
         public int Length { get; set; }
         public string FileName { get; set; }
         public int TilesCount { get; set; }

@@ -61,6 +61,13 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             return decompressedData;
         }
 
+        public static void SaveToCompressedFile(string file, byte[] data)
+        {
+            using MemoryStream memoryStream = new MemoryStream(data);
+            using FileStream fileStream = File.OpenWrite(file);
+            Lz10Compression.Compress(memoryStream, fileStream);
+        }
+
         public static string IdentifyFileType(string file)
         {
             return File.ReadAllBytes(file).IdentifyDataType();
@@ -163,5 +170,21 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
     {
         public Message Message { get; set; }
         public ListBox MessageListBox { get; set; }
+    }
+
+    public class GfuvTileTextBox : TextBox
+    {
+        public GfuvFile Gfuv { get; set; }
+        public int TileIndex { get; set; }
+        public System.Windows.Controls.Image TileImage { get; set; }
+        public BoundingBoxProperty Property { get; set; }
+
+        public enum BoundingBoxProperty
+        {
+            X,
+            Y,
+            Width,
+            Height
+        }
     }
 }
