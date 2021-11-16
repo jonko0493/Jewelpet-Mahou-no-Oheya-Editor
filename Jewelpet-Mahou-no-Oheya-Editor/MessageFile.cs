@@ -20,9 +20,9 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             return ParseFromData(await Helpers.DecompressFileAsync(file));
         }
         
-        public static async Task<MessageFile> ParseFromDecompressedFile(string file)
+        public static MessageFile ParseFromDecompressedFile(string file)
         {
-            var messageFile = ParseFromData(await File.ReadAllBytesAsync(file));
+            var messageFile = ParseFromData(File.ReadAllBytes(file));
             messageFile.FileName = Path.GetFileName(file);
             return messageFile;
         }
@@ -661,43 +661,13 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             for (int i = 0; i < data.Length - 1; i += 2)
             {
                 ushort nextShort = BitConverter.ToUInt16(data.Skip(i).Take(2).ToArray());
-                if (nextShort == 0x8067)
-                {
-                    ushort next8067Operator = BitConverter.ToUInt16(data.Skip(i + 2).Take(2).ToArray());
-                    if (MessageFile.X8067ShortToCharMap.ContainsKey(next8067Operator))
-                    {
-                        Text += MessageFile.X8067ShortToCharMap[next8067Operator];
-                        i += 2;
-                    }
-                    else
-                    {
-                        throw new ArgumentException($"Unknown 8067 operator 0x{next8067Operator:X4}");
-                    }
-                }
-                else if (nextShort == 0x8066)
-                {
-                    ushort next8066Operator = BitConverter.ToUInt16(data.Skip(i + 2).Take(2).ToArray());
-                    if (MessageFile.X8066ShortToCharMap.ContainsKey(next8066Operator))
-                    {
-                        Text += MessageFile.X8066ShortToCharMap[next8066Operator];
-                        i += 2;
-                    }
-                    else
-                    {
-                        throw new ArgumentException($"Unknown 8066 operator 0x{next8066Operator:X4}");
-                    }
-                }
-                else if (nextShort == 0x0000)
+                if (nextShort == 0x0000)
                 {
                     break;
                 }
-                else if (MessageFile.ShortToCharMap.ContainsKey(nextShort))
-                {
-                    Text += MessageFile.ShortToCharMap[nextShort];
-                }
                 else
                 {
-                    throw new ArgumentException($"Unknown opcode 0x{nextShort:X4} encountered");
+                    Text += Encoding.BigEndianUnicode.GetString(BitConverter.GetBytes(nextShort).Reverse().ToArray());
                 }
             }
         }

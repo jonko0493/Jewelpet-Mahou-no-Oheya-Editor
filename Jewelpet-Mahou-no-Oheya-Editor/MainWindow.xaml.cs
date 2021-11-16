@@ -48,14 +48,14 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
         {
             OpenFileDialog openFileDialog = new OpenFileDialog
             {
-                Filter = "CMP file|*.cmp"
+                Filter = "MBB file|*.mbb.enus"
             };
             if (openFileDialog.ShowDialog() == true)
             {
                 try
                 {
                     editStackPanel.Children.Clear();
-                    _messageFile = MessageFile.ParseFromCompressedFile(openFileDialog.FileName).GetAwaiter().GetResult();
+                    _messageFile = MessageFile.ParseFromDecompressedFile(openFileDialog.FileName);
                     messageFileTabControl.Items.Clear();
                     foreach (MessageTable messageTable in _messageFile.MessageTables)
                     {
@@ -142,7 +142,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
         {
             OpenFileDialog openFileDialog = new OpenFileDialog()
             {
-                Filter = "Graphics files|*.cmp;*.gfnt;*.gtpc|Compressed graphics file|*.cmp|Decompressed GFNT file|*.gfnt|Decompressed GTPC file|*.gtpc"
+                Filter = "Graphics files|*.gtx"
             };
             if (openFileDialog.ShowDialog() == true)
             {
