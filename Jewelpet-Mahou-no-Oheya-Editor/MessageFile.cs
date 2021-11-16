@@ -126,6 +126,7 @@ namespace Jewelpet_Mahou_no_Oheya_Editor
             try
             {
                 MessageFile messageFile = await ParseFromCompressedFile(openFile);
+                System.Windows.MessageBox.Show($"Less than {messageFile.ExtractStringsFromMessages().Split('\n').Length} lines");
                 await messageFile.SaveExtractedStringsToFile(saveFile);
             }
             catch (StackOverflowException)
